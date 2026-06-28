@@ -3,6 +3,7 @@ import { ActivityIndicator, Animated, Modal, Platform, Pressable, RefreshControl
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '../components/AppButton';
 import { EmptyState } from '../components/EmptyState';
@@ -20,6 +21,7 @@ type TodayFilter = 'pending' | 'completed';
 
 export function TodayScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Navigation>();
   const [routines, setRoutines] = useState<RoutineWithDetails[]>([]);
   const [completedRoutineIds, setCompletedRoutineIds] = useState<string[]>([]);
@@ -164,7 +166,7 @@ export function TodayScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {
           setRefreshing(true);
           load();

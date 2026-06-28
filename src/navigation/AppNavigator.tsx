@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../contexts/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -21,6 +22,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -28,7 +31,7 @@ function MainTabs() {
         tabBarActiveTintColor: '#0f766e',
         tabBarInactiveTintColor: '#64748b',
         tabBarActiveBackgroundColor: '#ccfbf1',
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { height: 70 + insets.bottom, paddingBottom: 10 + insets.bottom }],
         tabBarItemStyle: styles.tabBarItem,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarIcon: ({ color, size }) => {
@@ -91,8 +94,6 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     borderTopColor: '#e2e8f0',
-    height: 70,
-    paddingBottom: 10,
     paddingTop: 10,
   },
   tabBarItem: {

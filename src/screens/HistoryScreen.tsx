@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyState } from '../components/EmptyState';
 import { confirm } from '../lib/confirm';
@@ -137,6 +138,7 @@ function SessionCard({
 
 export function HistoryScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [history, setHistory] = useState<WorkoutHistorySession[]>([]);
   const [view, setView] = useState<HistoryView>('daily');
   const [loading, setLoading] = useState(true);
@@ -200,7 +202,7 @@ export function HistoryScreen() {
 
   return (
     <ScrollView
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {
         setRefreshing(true);
         load();
@@ -302,7 +304,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   cardActions: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    flexDirection: 'row',
     gap: 8,
   },
   container: {
