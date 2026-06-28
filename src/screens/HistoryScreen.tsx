@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleS
 import { useFocusEffect } from '@react-navigation/native';
 
 import { EmptyState } from '../components/EmptyState';
+import { confirm } from '../lib/confirm';
 import { useAuth } from '../contexts/AuthContext';
 import { formatSetGroups, normalizeSetGroups } from '../lib/exercisePlan';
 import { deleteWorkoutSession, fetchWorkoutHistory } from '../lib/routines';
@@ -42,14 +43,7 @@ function formatCompletedTime(value: string | null) {
 }
 
 function getRoutineName(session: WorkoutHistorySession) {
-  return session.routine_name ?? 'Deleted routine';
-}
-
-function summarizeSession(session: WorkoutHistorySession) {
-  const actualSets = session.logs.reduce((total, log) => total + log.actual_sets, 0);
-  const plannedSets = session.logs.reduce((total, log) => total + log.planned_sets, 0);
-
-  return `${session.logs.length} exercises - ${actualSets}/${plannedSets} sets`;
+  return session.routine_name ?? session.title ?? 'Deleted routine';
 }
 
 function groupByDay(sessions: WorkoutHistorySession[]): DailyGroup[] {
@@ -104,14 +98,9 @@ function SessionCard({
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={styles.cardTitleWrap}>
-          <Text style={styles.cardTitle}>{showRoutineName ? getRoutineName(session) : formatDate(session.scheduled_date)}</Text>
-          <Text style={styles.meta}>
-            {formatCompletedTime(session.completed_at)} - {summarizeSession(session)}
-          </Text>
-        </View>
+        <Text style={styles.cardTitle}>{showRoutineName ? getRoutineName(session) : formatDate(session.scheduled_date)}</Text>
         <View style={styles.cardActions}>
-          <Text style={styles.badge}>Done</Text>
+          <Text style={styles.timePill}>{formatCompletedTime(session.completed_at)}</Text>
           <Pressable
             accessibilityRole="button"
             disabled={deletingSession}
@@ -127,18 +116,20 @@ function SessionCard({
       </View>
 
       <View style={styles.exerciseList}>
-        {session.logs.map((log) => (
-          <View key={log.id} style={styles.logRow}>
-            <Text style={styles.exerciseName}>{log.name}</Text>
-            <Text style={styles.exerciseDetail}>
-              Actual: {formatSetGroups(normalizeSetGroups(log.actual_set_groups, { reps: log.actual_reps, sets: log.actual_sets }))}
-            </Text>
-            <Text style={styles.planned}>
-              Planned: {formatSetGroups(normalizeSetGroups(log.planned_set_groups, { reps: log.planned_reps, sets: log.planned_sets }))}
-            </Text>
-            {log.notes ? <Text style={styles.notes}>{log.notes}</Text> : null}
-          </View>
-        ))}
+        {session.logs.map((log) => {
+          const actual = formatSetGroups(normalizeSetGroups(log.actual_set_groups, { reps: log.actual_reps, sets: log.actual_sets }));
+          const planned = formatSetGroups(normalizeSetGroups(log.planned_set_groups, { reps: log.planned_reps, sets: log.planned_sets }));
+
+          return (
+            <View key={log.id} style={styles.logRow}>
+              <Text style={styles.exercise}>
+                {log.name} - {actual}
+                {planned !== actual ? <Text style={styles.planned}> (planned {planned})</Text> : null}
+              </Text>
+              {log.notes ? <Text style={styles.notes}>{log.notes}</Text> : null}
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -181,32 +172,30 @@ export function HistoryScreen() {
     setHistory((current) => current.filter((session) => session.id !== sessionId));
   }
 
-  function confirmDeleteSession(session: WorkoutHistorySession) {
+  async function confirmDeleteSession(session: WorkoutHistorySession) {
     const sessionName = getRoutineName(session);
     const sessionDate = formatDate(session.scheduled_date);
 
-    Alert.alert(
-      'Delete completed routine?',
-      `This removes "${sessionName}" from your workout history for ${sessionDate}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setDeletingSessionId(session.id);
-              await deleteWorkoutSession(session.id);
-              removeSessionFromHistory(session.id);
-            } catch (error) {
-              Alert.alert('Could not delete completed routine', error instanceof Error ? error.message : 'Please try again.');
-            } finally {
-              setDeletingSessionId(null);
-            }
-          },
-        },
-      ],
-    );
+    const confirmed = await confirm({
+      title: 'Delete completed routine?',
+      message: `This removes "${sessionName}" from your workout history for ${sessionDate}.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingSessionId(session.id);
+      await deleteWorkoutSession(session.id);
+      removeSessionFromHistory(session.id);
+    } catch (error) {
+      Alert.alert('Could not delete completed routine', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setDeletingSessionId(null);
+    }
   }
 
   return (
@@ -252,9 +241,6 @@ export function HistoryScreen() {
             <View key={group.date} style={styles.section}>
               <View>
                 <Text style={styles.sectionTitle}>{formatDate(group.date)}</Text>
-                <Text style={styles.sectionMeta}>
-                  {group.sessions.length} {group.sessions.length === 1 ? 'routine' : 'routines'} completed
-                </Text>
               </View>
               {group.sessions.map((session) => (
                 <SessionCard
@@ -295,21 +281,12 @@ export function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    backgroundColor: '#dcfce7',
-    borderRadius: 999,
-    color: '#166534',
-    fontSize: 12,
-    fontWeight: '800',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
   card: {
     backgroundColor: '#ffffff',
     borderColor: '#e2e8f0',
     borderRadius: 8,
     borderWidth: 1,
-    gap: 14,
+    gap: 10,
     padding: 16,
   },
   cardHeader: {
@@ -320,12 +297,9 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: '#0f172a',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  cardTitleWrap: {
     flex: 1,
-    gap: 4,
+    fontSize: 20,
+    fontWeight: '900',
   },
   cardActions: {
     alignItems: 'flex-end',
@@ -339,19 +313,13 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 32,
   },
-  exerciseDetail: {
-    color: '#0f172a',
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
-  },
-  exerciseList: {
-    gap: 10,
-  },
-  exerciseName: {
+  exercise: {
     color: '#334155',
     fontSize: 15,
-    fontWeight: '800',
+    lineHeight: 22,
+  },
+  exerciseList: {
+    gap: 6,
   },
   eyebrow: {
     color: '#0f766e',
@@ -363,17 +331,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   logRow: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    borderWidth: 1,
     gap: 4,
-    padding: 12,
-  },
-  meta: {
-    color: '#64748b',
-    fontSize: 14,
-    lineHeight: 20,
   },
   notes: {
     color: '#475569',
@@ -382,9 +340,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   planned: {
-    color: '#64748b',
-    fontSize: 14,
-    lineHeight: 20,
+    color: '#94a3b8',
+    fontWeight: '600',
+  },
+  timePill: {
+    backgroundColor: '#e0f2fe',
+    borderRadius: 999,
+    color: '#075985',
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   deleteSessionButton: {
     alignItems: 'center',

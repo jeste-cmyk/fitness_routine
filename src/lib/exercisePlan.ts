@@ -51,9 +51,8 @@ export function formatSetGroups(groups: RepSetGroup[]): string {
   return groups
     .map((group) => {
       const cleanGroup = sanitizeSetGroup(group);
-      const setLabel = cleanGroup.sets === 1 ? 'set' : 'sets';
       const repLabel = cleanGroup.reps === 1 ? 'rep' : 'reps';
-      return `${cleanGroup.sets} ${setLabel} x ${cleanGroup.reps} ${repLabel}`;
+      return `${cleanGroup.reps} ${repLabel} x ${cleanGroup.sets} series`;
     })
     .join(', ');
 }

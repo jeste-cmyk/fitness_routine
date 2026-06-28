@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/AppButton';
 import { Screen } from '../components/Screen';
+import { confirm, notify } from '../lib/confirm';
 import { useAuth } from '../contexts/AuthContext';
 import { getExerciseSetGroups } from '../lib/exercisePlan';
 import { deleteRoutine, fetchRoutineById, saveRoutineDetails } from '../lib/routines';
@@ -65,7 +66,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           : [blankExercise()],
       );
     } catch (error) {
-      Alert.alert('Could not load routine', error instanceof Error ? error.message : 'Please try again.');
+      notify('Could not load routine', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
     setExercises((current) => current.map((exercise, itemIndex) => (itemIndex === index ? nextExercise : exercise)));
   }
 
-  function updateSetGroup(exerciseIndex: number, groupIndex: number, nextGroup: RepSetGroup) {
+  function updateSet(exerciseIndex: number, setIndex: number, patch: Partial<RepSetGroup>) {
     setExercises((current) =>
       current.map((exercise, itemIndex) => {
         if (itemIndex !== exerciseIndex) {
@@ -94,21 +95,34 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
 
         return {
           ...exercise,
-          setGroups: exercise.setGroups.map((group, setIndex) => (setIndex === groupIndex ? nextGroup : group)),
+          setGroups: exercise.setGroups.map((group, idx) => {
+            if (idx !== setIndex) {
+              return group;
+            }
+
+            const next = { ...group, ...patch };
+            return { sets: Math.max(1, next.sets), reps: Math.max(1, next.reps) };
+          }),
         };
       }),
     );
   }
 
-  function addSetGroup(exerciseIndex: number) {
+  function addSet(exerciseIndex: number) {
     setExercises((current) =>
-      current.map((exercise, itemIndex) =>
-        itemIndex === exerciseIndex ? { ...exercise, setGroups: [...exercise.setGroups, blankSetGroup()] } : exercise,
-      ),
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex) {
+          return exercise;
+        }
+
+        // Copy the last set so adding a set is a quick "same again".
+        const lastSet = exercise.setGroups[exercise.setGroups.length - 1] ?? blankSetGroup();
+        return { ...exercise, setGroups: [...exercise.setGroups, { ...lastSet }] };
+      }),
     );
   }
 
-  function removeSetGroup(exerciseIndex: number, groupIndex: number) {
+  function removeSet(exerciseIndex: number, setIndex: number) {
     setExercises((current) =>
       current.map((exercise, itemIndex) => {
         if (itemIndex !== exerciseIndex || exercise.setGroups.length === 1) {
@@ -117,7 +131,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
 
         return {
           ...exercise,
-          setGroups: exercise.setGroups.filter((_group, setIndex) => setIndex !== groupIndex),
+          setGroups: exercise.setGroups.filter((_group, idx) => idx !== setIndex),
         };
       }),
     );
@@ -156,7 +170,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       });
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Could not save routine', error instanceof Error ? error.message : 'Please try again.');
+      notify('Could not save routine', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setSaving(false);
     }
@@ -167,21 +181,23 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       return;
     }
 
-    Alert.alert('Delete routine?', 'This removes the routine and its schedule. Workout history stays saved.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteRoutine(routineId);
-            navigation.goBack();
-          } catch (error) {
-            Alert.alert('Could not delete routine', error instanceof Error ? error.message : 'Please try again.');
-          }
-        },
-      },
-    ]);
+    const confirmed = await confirm({
+      title: 'Delete routine?',
+      message: 'This removes the routine and its schedule. Workout history stays saved.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteRoutine(routineId);
+      navigation.goBack();
+    } catch (error) {
+      notify('Could not delete routine', error instanceof Error ? error.message : 'Please try again.');
+    }
   }
 
   if (loading) {
@@ -247,45 +263,69 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           />
           <View style={styles.exerciseDetails}>
             <View style={styles.exerciseDetailsHeader}>
-              <Text style={styles.exerciseDetailsTitle}>Reps and sets</Text>
+              <Text style={styles.exerciseDetailsTitle}>Sets</Text>
               <AppButton
-                label="Add reps/sets"
-                onPress={() => addSetGroup(index)}
+                label="Add set"
+                onPress={() => addSet(index)}
                 variant="secondary"
                 style={styles.addSetGroupButton}
               />
             </View>
-            {exercise.setGroups.map((group, groupIndex) => (
-              <View key={`set-group-${groupIndex}`} style={styles.setGroup}>
-                <View style={styles.setGroupHeader}>
-                  <Text style={styles.setGroupTitle}>Group {groupIndex + 1}</Text>
+            {exercise.setGroups.map((set, setIndex) => (
+              <View key={`set-${setIndex}`} style={styles.setRow}>
+                <View style={styles.setRowHeader}>
+                  <Text style={styles.setRowLabel}>Set {setIndex + 1}</Text>
                   {exercise.setGroups.length > 1 ? (
                     <AppButton
                       label="Remove"
-                      onPress={() => removeSetGroup(index, groupIndex)}
+                      onPress={() => removeSet(index, setIndex)}
                       variant="ghost"
                       style={styles.removeSetGroupButton}
                     />
                   ) : null}
                 </View>
-                <View style={styles.numberRow}>
-                  <View style={styles.numberField}>
-                    <Text style={styles.label}>Sets</Text>
+                <View style={styles.stepperRow}>
+                  <View style={styles.stepper}>
+                    <AppButton
+                      label="−"
+                      onPress={() => updateSet(index, setIndex, { reps: set.reps - 1 })}
+                      variant="secondary"
+                      style={styles.stepperButton}
+                    />
                     <TextInput
                       keyboardType="number-pad"
-                      onChangeText={(value) => updateSetGroup(index, groupIndex, { ...group, sets: parsePositiveInt(value) })}
-                      style={[styles.input, styles.numberInput]}
-                      value={String(group.sets)}
+                      onChangeText={(value) => updateSet(index, setIndex, { reps: parsePositiveInt(value) })}
+                      style={[styles.input, styles.stepperValue]}
+                      value={String(set.reps)}
                     />
+                    <AppButton
+                      label="+"
+                      onPress={() => updateSet(index, setIndex, { reps: set.reps + 1 })}
+                      variant="secondary"
+                      style={styles.stepperButton}
+                    />
+                    <Text style={styles.stepperUnit}>reps</Text>
                   </View>
-                  <View style={styles.numberField}>
-                    <Text style={styles.label}>Reps</Text>
+                  <View style={styles.stepper}>
+                    <AppButton
+                      label="−"
+                      onPress={() => updateSet(index, setIndex, { sets: set.sets - 1 })}
+                      variant="secondary"
+                      style={styles.stepperButton}
+                    />
                     <TextInput
                       keyboardType="number-pad"
-                      onChangeText={(value) => updateSetGroup(index, groupIndex, { ...group, reps: parsePositiveInt(value) })}
-                      style={[styles.input, styles.numberInput]}
-                      value={String(group.reps)}
+                      onChangeText={(value) => updateSet(index, setIndex, { sets: parsePositiveInt(value) })}
+                      style={[styles.input, styles.stepperValue]}
+                      value={String(set.sets)}
                     />
+                    <AppButton
+                      label="+"
+                      onPress={() => updateSet(index, setIndex, { sets: set.sets + 1 })}
+                      variant="secondary"
+                      style={styles.stepperButton}
+                    />
+                    <Text style={styles.stepperUnit}>series</Text>
                   </View>
                 </View>
               </View>
@@ -373,28 +413,10 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
   },
-  label: {
-    color: '#475569',
-    fontSize: 13,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
   notesInput: {
     minHeight: 96,
     paddingTop: 12,
     textAlignVertical: 'top',
-  },
-  numberInput: {
-    minHeight: 44,
-  },
-  numberField: {
-    flex: 1,
-    minWidth: 120,
-  },
-  numberRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
   },
   removeButton: {
     flexGrow: 1,
@@ -416,18 +438,47 @@ const styles = StyleSheet.create({
   smallButton: {
     minWidth: 72,
   },
-  setGroup: {
-    gap: 8,
+  setRow: {
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 10,
+    padding: 10,
   },
-  setGroupHeader: {
+  setRowHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  setGroupTitle: {
+  setRowLabel: {
     color: '#475569',
     fontSize: 13,
     fontWeight: '800',
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  stepper: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  stepperButton: {
+    minWidth: 44,
+    paddingHorizontal: 0,
+  },
+  stepperValue: {
+    minHeight: 44,
+    minWidth: 64,
+    textAlign: 'center',
+  },
+  stepperUnit: {
+    color: '#64748b',
+    fontSize: 13,
+    fontWeight: '700',
   },
   title: {
     color: '#0f172a',

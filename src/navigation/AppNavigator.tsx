@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { AuthScreen } from '../screens/AuthScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { QuickLogScreen } from '../screens/QuickLogScreen';
 import { RoutineEditorScreen } from '../screens/RoutineEditorScreen';
 import { RoutinesScreen } from '../screens/RoutinesScreen';
 import { SupabaseSetupScreen } from '../screens/SupabaseSetupScreen';
@@ -26,7 +27,10 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: '#0f766e',
         tabBarInactiveTintColor: '#64748b',
+        tabBarActiveBackgroundColor: '#ccfbf1',
         tabBarStyle: styles.tabBar,
+        tabBarItemStyle: styles.tabBarItem,
+        tabBarLabelStyle: styles.tabBarLabel,
         tabBarIcon: ({ color, size }) => {
           const icons = {
             Today: 'today-outline',
@@ -69,6 +73,7 @@ export function AppNavigator() {
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="RoutineEditor" component={RoutineEditorScreen} options={{ title: 'Routine' }} />
           <Stack.Screen name="Workout" component={WorkoutScreen} options={{ title: 'Workout' }} />
+          <Stack.Screen name="QuickLog" component={QuickLogScreen} options={{ title: 'Quick log' }} />
         </Stack.Navigator>
       ) : (
         <AuthScreen />
@@ -86,8 +91,15 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     borderTopColor: '#e2e8f0',
-    height: 64,
-    paddingBottom: 8,
-    paddingTop: 8,
+    height: 70,
+    paddingBottom: 10,
+    paddingTop: 10,
+  },
+  tabBarItem: {
+    borderRadius: 14,
+    marginHorizontal: 8,
+  },
+  tabBarLabel: {
+    fontWeight: '700',
   },
 });

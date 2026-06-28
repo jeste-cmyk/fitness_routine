@@ -88,7 +88,6 @@ export function RoutinesScreen() {
             <Text style={styles.schedule}>{formatSchedule(routine)}</Text>
           </View>
           {routine.notes ? <Text style={styles.notes}>{routine.notes}</Text> : null}
-          <Text style={styles.meta}>{routine.exercises.length} exercises</Text>
           <View style={styles.exerciseList}>
             {routine.exercises.map((exercise) => (
               <Text key={exercise.id} style={styles.exercise}>
@@ -156,11 +155,6 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
-  },
-  meta: {
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: '700',
   },
   notes: {
     color: '#64748b',

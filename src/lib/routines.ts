@@ -18,6 +18,23 @@ function raise(error: unknown): never {
     throw error;
   }
 
+  // Supabase returns a plain PostgrestError object ({ message, details, hint,
+  // code }), not an Error instance, so surface its message instead of a
+  // generic fallback that hides what actually went wrong.
+  if (error && typeof error === 'object' && 'message' in error) {
+    const { message, details, hint, code } = error as {
+      message?: unknown;
+      details?: unknown;
+      hint?: unknown;
+      code?: unknown;
+    };
+    const parts = [message, details, hint].filter(
+      (part): part is string => typeof part === 'string' && part.length > 0,
+    );
+    const text = parts.join(' — ') || 'Unexpected data error';
+    throw new Error(typeof code === 'string' && code ? `${text} (${code})` : text);
+  }
+
   throw new Error('Unexpected data error');
 }
 
@@ -242,6 +259,30 @@ export async function deleteWorkoutSession(sessionId: string) {
   }
 }
 
+/**
+ * Reverts a routine that was marked complete today back to pending by removing
+ * its completed session for the date. The associated exercise logs are removed
+ * automatically via the `on delete cascade` foreign key on
+ * `workout_exercise_logs`.
+ */
+export async function markRoutineIncomplete(params: {
+  userId: string;
+  routineId: string;
+  scheduledDate: string;
+}) {
+  const { error } = await supabase
+    .from('workout_sessions')
+    .delete()
+    .eq('user_id', params.userId)
+    .eq('routine_id', params.routineId)
+    .eq('scheduled_date', params.scheduledDate)
+    .eq('status', 'completed');
+
+  if (error) {
+    raise(error);
+  }
+}
+
 export async function fetchCompletedRoutineIdsForDate(userId: string, scheduledDate: string): Promise<string[]> {
   const { data, error } = await supabase
     .from('workout_sessions')
@@ -294,6 +335,34 @@ export async function fetchWorkoutHistory(userId: string): Promise<WorkoutHistor
   }));
 }
 
+function buildWorkoutLogRows(sessionId: string, logs: WorkoutExerciseLogInput[]) {
+  return logs.map((log) => {
+    const plannedSetGroups = normalizeSetGroups(log.plannedSetGroups, {
+      reps: log.plannedReps,
+      sets: log.plannedSets,
+    });
+    const actualSetGroups = normalizeSetGroups(log.actualSetGroups, {
+      reps: log.actualReps,
+      sets: log.actualSets,
+    });
+    const plannedFirstGroup = getFirstSetGroup(plannedSetGroups);
+    const actualFirstGroup = getFirstSetGroup(actualSetGroups);
+
+    return {
+      workout_session_id: sessionId,
+      routine_exercise_id: log.routineExerciseId,
+      name: log.name,
+      planned_reps: plannedFirstGroup.reps,
+      planned_sets: getTotalSets(plannedSetGroups),
+      planned_set_groups: plannedSetGroups,
+      actual_reps: actualFirstGroup.reps,
+      actual_sets: getTotalSets(actualSetGroups),
+      actual_set_groups: actualSetGroups,
+      notes: log.notes.trim() || null,
+    };
+  });
+}
+
 export async function completeWorkout(params: {
   userId: string;
   routineId: string;
@@ -316,33 +385,59 @@ export async function completeWorkout(params: {
     raise(sessionError);
   }
 
-  const rows = params.logs.map((log) => {
-    const plannedSetGroups = normalizeSetGroups(log.plannedSetGroups, {
-      reps: log.plannedReps,
-      sets: log.plannedSets,
-    });
-    const actualSetGroups = normalizeSetGroups(log.actualSetGroups, {
-      reps: log.actualReps,
-      sets: log.actualSets,
-    });
-    const plannedFirstGroup = getFirstSetGroup(plannedSetGroups);
-    const actualFirstGroup = getFirstSetGroup(actualSetGroups);
+  const { error: logsError } = await supabase
+    .from('workout_exercise_logs')
+    .insert(buildWorkoutLogRows(session.id, params.logs));
 
-    return {
-      workout_session_id: session.id,
-      routine_exercise_id: log.routineExerciseId,
-      name: log.name,
-      planned_reps: plannedFirstGroup.reps,
-      planned_sets: getTotalSets(plannedSetGroups),
-      planned_set_groups: plannedSetGroups,
-      actual_reps: actualFirstGroup.reps,
-      actual_sets: getTotalSets(actualSetGroups),
-      actual_set_groups: actualSetGroups,
-      notes: log.notes.trim() || null,
-    };
-  });
+  if (logsError) {
+    raise(logsError);
+  }
 
-  const { error: logsError } = await supabase.from('workout_exercise_logs').insert(rows);
+  return session;
+}
+
+/**
+ * Logs an ad-hoc workout that is not tied to a saved routine (a temporal
+ * routine for the day, or a single exercise done to failure). The session is
+ * stored with `routine_id = null` and a free-text `title` so it still shows a
+ * meaningful name in history.
+ */
+export async function logAdHocWorkout(params: {
+  userId: string;
+  title: string;
+  scheduledDate: string;
+  logs: WorkoutExerciseLogInput[];
+}) {
+  const title = params.title.trim();
+
+  if (!title) {
+    throw new Error('A title is required');
+  }
+
+  if (params.logs.length === 0) {
+    throw new Error('Add at least one exercise');
+  }
+
+  const { data: session, error: sessionError } = await supabase
+    .from('workout_sessions')
+    .insert({
+      user_id: params.userId,
+      routine_id: null,
+      title,
+      scheduled_date: params.scheduledDate,
+      completed_at: new Date().toISOString(),
+      status: 'completed',
+    })
+    .select('*')
+    .single();
+
+  if (sessionError) {
+    raise(sessionError);
+  }
+
+  const { error: logsError } = await supabase
+    .from('workout_exercise_logs')
+    .insert(buildWorkoutLogRows(session.id, params.logs));
 
   if (logsError) {
     raise(logsError);

@@ -35,6 +35,7 @@ export type WorkoutSession = {
   id: string;
   user_id: string;
   routine_id: string | null;
+  title: string | null;
   scheduled_date: string;
   started_at: string;
   completed_at: string | null;
