@@ -1,0 +1,5 @@
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_SUPABASE_URL
+Starting project at C:\Users\DiDi\Desktop\proyects\fitness_routine
+› Port 8081 is being used by another process
+› Skipping dev server

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getFirstSetGroup, getTotalSets, normalizeSetGroups } from './exercisePlan';
 import {
   EditableExercise,
   Routine,
@@ -6,7 +7,10 @@ import {
   RoutineSchedule,
   RoutineWithDetails,
   Weekday,
+  WorkoutExerciseLog,
   WorkoutExerciseLogInput,
+  WorkoutHistorySession,
+  WorkoutSession,
 } from './types';
 
 function raise(error: unknown): never {
@@ -21,6 +25,27 @@ function sortExercises(exercises: RoutineExercise[]) {
   return [...exercises].sort((a, b) => a.sort_order - b.sort_order);
 }
 
+function normalizeRoutineExercise(exercise: RoutineExercise): RoutineExercise {
+  return {
+    ...exercise,
+    set_groups: normalizeSetGroups(exercise.set_groups, { reps: exercise.reps, sets: exercise.sets }),
+  };
+}
+
+function normalizeWorkoutLog(log: WorkoutExerciseLog): WorkoutExerciseLog {
+  return {
+    ...log,
+    planned_set_groups: normalizeSetGroups(log.planned_set_groups, {
+      reps: log.planned_reps,
+      sets: log.planned_sets,
+    }),
+    actual_set_groups: normalizeSetGroups(log.actual_set_groups, {
+      reps: log.actual_reps,
+      sets: log.actual_sets,
+    }),
+  };
+}
+
 function composeRoutineDetails(
   routines: Routine[],
   exercises: RoutineExercise[],
@@ -28,7 +53,7 @@ function composeRoutineDetails(
 ): RoutineWithDetails[] {
   return routines.map((routine) => ({
     ...routine,
-    exercises: sortExercises(exercises.filter((exercise) => exercise.routine_id === routine.id)),
+    exercises: sortExercises(exercises.filter((exercise) => exercise.routine_id === routine.id).map(normalizeRoutineExercise)),
     schedule: schedules
       .filter((schedule) => schedule.routine_id === routine.id)
       .sort((a, b) => a.weekday - b.weekday),
@@ -156,13 +181,19 @@ async function replaceRoutineExercises(routineId: string, exercises: EditableExe
     raise(deleteError);
   }
 
-  const rows = exercises.map((exercise, index) => ({
-    routine_id: routineId,
-    name: exercise.name.trim(),
-    reps: Math.max(1, Math.trunc(exercise.reps)),
-    sets: Math.max(1, Math.trunc(exercise.sets)),
-    sort_order: index,
-  }));
+  const rows = exercises.map((exercise, index) => {
+    const setGroups = normalizeSetGroups(exercise.setGroups);
+    const firstGroup = getFirstSetGroup(setGroups);
+
+    return {
+      routine_id: routineId,
+      name: exercise.name.trim(),
+      reps: firstGroup.reps,
+      sets: getTotalSets(setGroups),
+      set_groups: setGroups,
+      sort_order: index,
+    };
+  });
 
   const { error: insertError } = await supabase.from('routine_exercises').insert(rows);
 
@@ -203,6 +234,66 @@ export async function deleteRoutine(routineId: string) {
   }
 }
 
+export async function deleteWorkoutSession(sessionId: string) {
+  const { error } = await supabase.from('workout_sessions').delete().eq('id', sessionId);
+
+  if (error) {
+    raise(error);
+  }
+}
+
+export async function fetchCompletedRoutineIdsForDate(userId: string, scheduledDate: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select('routine_id')
+    .eq('user_id', userId)
+    .eq('scheduled_date', scheduledDate)
+    .eq('status', 'completed')
+    .not('routine_id', 'is', null);
+
+  if (error) {
+    raise(error);
+  }
+
+  const routineIds = ((data ?? []) as Pick<WorkoutSession, 'routine_id'>[])
+    .map((session) => session.routine_id)
+    .filter((routineId): routineId is string => Boolean(routineId));
+
+  return [...new Set(routineIds)];
+}
+
+type WorkoutHistoryRow = WorkoutSession & {
+  routines: { name: string } | null;
+  workout_exercise_logs: WorkoutExerciseLog[] | null;
+};
+
+export async function fetchWorkoutHistory(userId: string): Promise<WorkoutHistorySession[]> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select(
+      `
+        *,
+        routines(name),
+        workout_exercise_logs(*)
+      `,
+    )
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .order('scheduled_date', { ascending: false })
+    .order('completed_at', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    raise(error);
+  }
+
+  return ((data ?? []) as WorkoutHistoryRow[]).map((session) => ({
+    ...session,
+    routine_name: session.routines?.name ?? null,
+    logs: (session.workout_exercise_logs ?? []).map(normalizeWorkoutLog),
+  }));
+}
+
 export async function completeWorkout(params: {
   userId: string;
   routineId: string;
@@ -225,16 +316,31 @@ export async function completeWorkout(params: {
     raise(sessionError);
   }
 
-  const rows = params.logs.map((log) => ({
-    workout_session_id: session.id,
-    routine_exercise_id: log.routineExerciseId,
-    name: log.name,
-    planned_reps: log.plannedReps,
-    planned_sets: log.plannedSets,
-    actual_reps: Math.max(1, Math.trunc(log.actualReps)),
-    actual_sets: Math.max(1, Math.trunc(log.actualSets)),
-    notes: log.notes.trim() || null,
-  }));
+  const rows = params.logs.map((log) => {
+    const plannedSetGroups = normalizeSetGroups(log.plannedSetGroups, {
+      reps: log.plannedReps,
+      sets: log.plannedSets,
+    });
+    const actualSetGroups = normalizeSetGroups(log.actualSetGroups, {
+      reps: log.actualReps,
+      sets: log.actualSets,
+    });
+    const plannedFirstGroup = getFirstSetGroup(plannedSetGroups);
+    const actualFirstGroup = getFirstSetGroup(actualSetGroups);
+
+    return {
+      workout_session_id: session.id,
+      routine_exercise_id: log.routineExerciseId,
+      name: log.name,
+      planned_reps: plannedFirstGroup.reps,
+      planned_sets: getTotalSets(plannedSetGroups),
+      planned_set_groups: plannedSetGroups,
+      actual_reps: actualFirstGroup.reps,
+      actual_sets: getTotalSets(actualSetGroups),
+      actual_set_groups: actualSetGroups,
+      notes: log.notes.trim() || null,
+    };
+  });
 
   const { error: logsError } = await supabase.from('workout_exercise_logs').insert(rows);
 

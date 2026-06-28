@@ -8,7 +8,7 @@ type AuthContextValue = {
   session: Session | null;
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ session: Session | null; user: User | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -44,18 +44,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
       session,
       user: session?.user ?? null,
       async signIn(email, password) {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
 
         if (error) {
           throw error;
         }
       },
       async signUp(email, password) {
-        const { error } = await supabase.auth.signUp({ email: email.trim(), password });
+        const { data, error } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password });
 
         if (error) {
           throw error;
         }
+
+        return { session: data.session, user: data.user };
       },
       async signOut() {
         const { error } = await supabase.auth.signOut();

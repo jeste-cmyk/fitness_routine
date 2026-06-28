@@ -6,8 +6,9 @@ import { AppButton } from '../components/AppButton';
 import { Screen } from '../components/Screen';
 import { useAuth } from '../contexts/AuthContext';
 import { getLocalDateString } from '../lib/date';
+import { formatSetGroups, getExerciseSetGroups, getFirstSetGroup, getTotalSets } from '../lib/exercisePlan';
 import { completeWorkout, fetchRoutineById } from '../lib/routines';
-import { RoutineWithDetails, WorkoutExerciseLogInput } from '../lib/types';
+import { RepSetGroup, RoutineWithDetails, WorkoutExerciseLogInput } from '../lib/types';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Workout'>;
@@ -37,16 +38,24 @@ export function WorkoutScreen({ navigation, route }: Props) {
       const data = await fetchRoutineById(user.id, route.params.routineId);
       setRoutine(data);
       setLogs(
-        data.exercises.map((exercise) => ({
-          key: exercise.id,
-          routineExerciseId: exercise.id,
-          name: exercise.name,
-          plannedReps: exercise.reps,
-          plannedSets: exercise.sets,
-          actualReps: exercise.reps,
-          actualSets: exercise.sets,
-          notes: '',
-        })),
+        data.exercises.map((exercise) => {
+          const setGroups = getExerciseSetGroups(exercise);
+          const firstGroup = getFirstSetGroup(setGroups);
+          const totalSets = getTotalSets(setGroups);
+
+          return {
+            key: exercise.id,
+            routineExerciseId: exercise.id,
+            name: exercise.name,
+            plannedReps: firstGroup.reps,
+            plannedSets: totalSets,
+            plannedSetGroups: setGroups,
+            actualReps: firstGroup.reps,
+            actualSets: totalSets,
+            actualSetGroups: setGroups,
+            notes: '',
+          };
+        }),
       );
       navigation.setOptions({ title: data.name });
     } catch (error) {
@@ -62,6 +71,28 @@ export function WorkoutScreen({ navigation, route }: Props) {
 
   function updateLog(index: number, nextLog: DraftLog) {
     setLogs((current) => current.map((log, itemIndex) => (itemIndex === index ? nextLog : log)));
+  }
+
+  function updateActualSetGroup(logIndex: number, groupIndex: number, nextGroup: RepSetGroup) {
+    setLogs((current) =>
+      current.map((log, itemIndex) => {
+        if (itemIndex !== logIndex) {
+          return log;
+        }
+
+        const actualSetGroups = log.actualSetGroups.map((group, setIndex) =>
+          setIndex === groupIndex ? nextGroup : group,
+        );
+        const firstGroup = getFirstSetGroup(actualSetGroups);
+
+        return {
+          ...log,
+          actualReps: firstGroup.reps,
+          actualSets: getTotalSets(actualSetGroups),
+          actualSetGroups,
+        };
+      }),
+    );
   }
 
   async function finishWorkout() {
@@ -113,28 +144,37 @@ export function WorkoutScreen({ navigation, route }: Props) {
       {logs.map((log, index) => (
         <View key={log.key} style={styles.card}>
           <Text style={styles.exerciseTitle}>{log.name}</Text>
-          <Text style={styles.planned}>
-            Planned: {log.plannedReps} reps x {log.plannedSets} sets
-          </Text>
-          <View style={styles.numberRow}>
-            <View style={styles.numberField}>
-              <Text style={styles.label}>Actual reps</Text>
-              <TextInput
-                keyboardType="number-pad"
-                onChangeText={(value) => updateLog(index, { ...log, actualReps: parsePositiveInt(value) })}
-                style={styles.input}
-                value={String(log.actualReps)}
-              />
-            </View>
-            <View style={styles.numberField}>
-              <Text style={styles.label}>Actual sets</Text>
-              <TextInput
-                keyboardType="number-pad"
-                onChangeText={(value) => updateLog(index, { ...log, actualSets: parsePositiveInt(value) })}
-                style={styles.input}
-                value={String(log.actualSets)}
-              />
-            </View>
+          <Text style={styles.planned}>Planned: {formatSetGroups(log.plannedSetGroups)}</Text>
+          <View style={styles.actualGroups}>
+            {log.actualSetGroups.map((group, groupIndex) => (
+              <View key={`actual-group-${groupIndex}`} style={styles.actualGroup}>
+                <Text style={styles.groupTitle}>Group {groupIndex + 1}</Text>
+                <View style={styles.numberRow}>
+                  <View style={styles.numberField}>
+                    <Text style={styles.label}>Actual sets</Text>
+                    <TextInput
+                      keyboardType="number-pad"
+                      onChangeText={(value) =>
+                        updateActualSetGroup(index, groupIndex, { ...group, sets: parsePositiveInt(value) })
+                      }
+                      style={styles.input}
+                      value={String(group.sets)}
+                    />
+                  </View>
+                  <View style={styles.numberField}>
+                    <Text style={styles.label}>Actual reps</Text>
+                    <TextInput
+                      keyboardType="number-pad"
+                      onChangeText={(value) =>
+                        updateActualSetGroup(index, groupIndex, { ...group, reps: parsePositiveInt(value) })
+                      }
+                      style={styles.input}
+                      value={String(group.reps)}
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
           </View>
           <TextInput
             multiline
@@ -153,6 +193,12 @@ export function WorkoutScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  actualGroup: {
+    gap: 8,
+  },
+  actualGroups: {
+    gap: 12,
+  },
   card: {
     backgroundColor: '#ffffff',
     borderColor: '#e2e8f0',
@@ -165,6 +211,11 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontSize: 19,
     fontWeight: '900',
+  },
+  groupTitle: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '800',
   },
   eyebrow: {
     color: '#0f766e',
@@ -195,9 +246,11 @@ const styles = StyleSheet.create({
   },
   numberField: {
     flex: 1,
+    minWidth: 120,
   },
   numberRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   planned: {

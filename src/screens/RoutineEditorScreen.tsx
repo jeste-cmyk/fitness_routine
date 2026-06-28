@@ -5,14 +5,19 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppButton } from '../components/AppButton';
 import { Screen } from '../components/Screen';
 import { useAuth } from '../contexts/AuthContext';
+import { getExerciseSetGroups } from '../lib/exercisePlan';
 import { deleteRoutine, fetchRoutineById, saveRoutineDetails } from '../lib/routines';
-import { EditableExercise, WEEKDAYS, Weekday } from '../lib/types';
+import { EditableExercise, RepSetGroup, WEEKDAYS, Weekday } from '../lib/types';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoutineEditor'>;
 
 const blankExercise = (): EditableExercise => ({
   name: '',
+  setGroups: [blankSetGroup()],
+});
+
+const blankSetGroup = (): RepSetGroup => ({
   reps: 1,
   sets: 1,
 });
@@ -55,8 +60,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           ? routine.exercises.map((exercise) => ({
               id: exercise.id,
               name: exercise.name,
-              reps: exercise.reps,
-              sets: exercise.sets,
+              setGroups: getExerciseSetGroups(exercise),
             }))
           : [blankExercise()],
       );
@@ -79,6 +83,44 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
 
   function updateExercise(index: number, nextExercise: EditableExercise) {
     setExercises((current) => current.map((exercise, itemIndex) => (itemIndex === index ? nextExercise : exercise)));
+  }
+
+  function updateSetGroup(exerciseIndex: number, groupIndex: number, nextGroup: RepSetGroup) {
+    setExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex) {
+          return exercise;
+        }
+
+        return {
+          ...exercise,
+          setGroups: exercise.setGroups.map((group, setIndex) => (setIndex === groupIndex ? nextGroup : group)),
+        };
+      }),
+    );
+  }
+
+  function addSetGroup(exerciseIndex: number) {
+    setExercises((current) =>
+      current.map((exercise, itemIndex) =>
+        itemIndex === exerciseIndex ? { ...exercise, setGroups: [...exercise.setGroups, blankSetGroup()] } : exercise,
+      ),
+    );
+  }
+
+  function removeSetGroup(exerciseIndex: number, groupIndex: number) {
+    setExercises((current) =>
+      current.map((exercise, itemIndex) => {
+        if (itemIndex !== exerciseIndex || exercise.setGroups.length === 1) {
+          return exercise;
+        }
+
+        return {
+          ...exercise,
+          setGroups: exercise.setGroups.filter((_group, setIndex) => setIndex !== groupIndex),
+        };
+      }),
+    );
   }
 
   function moveExercise(index: number, direction: -1 | 1) {
@@ -192,7 +234,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
 
       {exercises.map((exercise, index) => (
         <View key={`${exercise.id ?? 'new'}-${index}`} style={styles.exerciseCard}>
-          <Text style={styles.exerciseTitle}>Exercise {index + 1}</Text>
+          <View style={styles.exerciseHeader}>
+            <Text style={styles.exerciseTitle}>Exercise {index + 1}</Text>
+            {exercise.name.trim() ? <Text style={styles.exerciseNamePreview}>{exercise.name.trim()}</Text> : null}
+          </View>
           <TextInput
             onChangeText={(value) => updateExercise(index, { ...exercise, name: value })}
             placeholder="Exercise name"
@@ -200,25 +245,51 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
             style={styles.input}
             value={exercise.name}
           />
-          <View style={styles.numberRow}>
-            <View style={styles.numberField}>
-              <Text style={styles.label}>Reps</Text>
-              <TextInput
-                keyboardType="number-pad"
-                onChangeText={(value) => updateExercise(index, { ...exercise, reps: parsePositiveInt(value) })}
-                style={styles.input}
-                value={String(exercise.reps)}
+          <View style={styles.exerciseDetails}>
+            <View style={styles.exerciseDetailsHeader}>
+              <Text style={styles.exerciseDetailsTitle}>Reps and sets</Text>
+              <AppButton
+                label="Add reps/sets"
+                onPress={() => addSetGroup(index)}
+                variant="secondary"
+                style={styles.addSetGroupButton}
               />
             </View>
-            <View style={styles.numberField}>
-              <Text style={styles.label}>Sets</Text>
-              <TextInput
-                keyboardType="number-pad"
-                onChangeText={(value) => updateExercise(index, { ...exercise, sets: parsePositiveInt(value) })}
-                style={styles.input}
-                value={String(exercise.sets)}
-              />
-            </View>
+            {exercise.setGroups.map((group, groupIndex) => (
+              <View key={`set-group-${groupIndex}`} style={styles.setGroup}>
+                <View style={styles.setGroupHeader}>
+                  <Text style={styles.setGroupTitle}>Group {groupIndex + 1}</Text>
+                  {exercise.setGroups.length > 1 ? (
+                    <AppButton
+                      label="Remove"
+                      onPress={() => removeSetGroup(index, groupIndex)}
+                      variant="ghost"
+                      style={styles.removeSetGroupButton}
+                    />
+                  ) : null}
+                </View>
+                <View style={styles.numberRow}>
+                  <View style={styles.numberField}>
+                    <Text style={styles.label}>Sets</Text>
+                    <TextInput
+                      keyboardType="number-pad"
+                      onChangeText={(value) => updateSetGroup(index, groupIndex, { ...group, sets: parsePositiveInt(value) })}
+                      style={[styles.input, styles.numberInput]}
+                      value={String(group.sets)}
+                    />
+                  </View>
+                  <View style={styles.numberField}>
+                    <Text style={styles.label}>Reps</Text>
+                    <TextInput
+                      keyboardType="number-pad"
+                      onChangeText={(value) => updateSetGroup(index, groupIndex, { ...group, reps: parsePositiveInt(value) })}
+                      style={[styles.input, styles.numberInput]}
+                      value={String(group.reps)}
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
           </View>
           <View style={styles.actionRow}>
             <AppButton label="Up" onPress={() => moveExercise(index, -1)} variant="secondary" style={styles.smallButton} />
@@ -245,6 +316,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  addSetGroupButton: {
+    minWidth: 136,
+  },
   dayButton: {
     minWidth: 64,
   },
@@ -255,6 +329,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 12,
     padding: 14,
+  },
+  exerciseDetails: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 10,
+    padding: 12,
+  },
+  exerciseDetailsHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  exerciseDetailsTitle: {
+    color: '#334155',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  exerciseHeader: {
+    gap: 4,
+  },
+  exerciseNamePreview: {
+    color: '#64748b',
+    fontSize: 14,
+    fontWeight: '700',
   },
   exerciseTitle: {
     color: '#0f172a',
@@ -282,15 +384,24 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     textAlignVertical: 'top',
   },
+  numberInput: {
+    minHeight: 44,
+  },
   numberField: {
     flex: 1,
+    minWidth: 120,
   },
   numberRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   removeButton: {
     flexGrow: 1,
+  },
+  removeSetGroupButton: {
+    minHeight: 34,
+    paddingHorizontal: 8,
   },
   sectionHeader: {
     alignItems: 'center',
@@ -304,6 +415,19 @@ const styles = StyleSheet.create({
   },
   smallButton: {
     minWidth: 72,
+  },
+  setGroup: {
+    gap: 8,
+  },
+  setGroupHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  setGroupTitle: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '800',
   },
   title: {
     color: '#0f172a',

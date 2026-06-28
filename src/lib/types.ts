@@ -15,6 +15,7 @@ export type RoutineExercise = {
   name: string;
   reps: number;
   sets: number;
+  set_groups: RepSetGroup[];
   sort_order: number;
 };
 
@@ -30,11 +31,39 @@ export type RoutineWithDetails = Routine & {
   schedule: RoutineSchedule[];
 };
 
+export type WorkoutSession = {
+  id: string;
+  user_id: string;
+  routine_id: string | null;
+  scheduled_date: string;
+  started_at: string;
+  completed_at: string | null;
+  status: 'started' | 'completed';
+};
+
+export type WorkoutExerciseLog = {
+  id: string;
+  workout_session_id: string;
+  routine_exercise_id: string | null;
+  name: string;
+  planned_reps: number;
+  planned_sets: number;
+  planned_set_groups: RepSetGroup[] | null;
+  actual_reps: number;
+  actual_sets: number;
+  actual_set_groups: RepSetGroup[] | null;
+  notes: string | null;
+};
+
+export type WorkoutHistorySession = WorkoutSession & {
+  routine_name: string | null;
+  logs: WorkoutExerciseLog[];
+};
+
 export type EditableExercise = {
   id?: string;
   name: string;
-  reps: number;
-  sets: number;
+  setGroups: RepSetGroup[];
 };
 
 export type WorkoutExerciseLogInput = {
@@ -42,9 +71,16 @@ export type WorkoutExerciseLogInput = {
   name: string;
   plannedReps: number;
   plannedSets: number;
+  plannedSetGroups: RepSetGroup[];
   actualReps: number;
   actualSets: number;
+  actualSetGroups: RepSetGroup[];
   notes: string;
+};
+
+export type RepSetGroup = {
+  reps: number;
+  sets: number;
 };
 
 export const WEEKDAYS: Array<{ value: Weekday; short: string; label: string }> = [

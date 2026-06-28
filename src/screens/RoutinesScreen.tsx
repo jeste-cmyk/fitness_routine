@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppButton } from '../components/AppButton';
 import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
+import { formatSetGroups, getExerciseSetGroups } from '../lib/exercisePlan';
 import { fetchRoutineDetails } from '../lib/routines';
 import { RoutineWithDetails, WEEKDAYS } from '../lib/types';
 import { RootStackParamList } from '../navigation/types';
@@ -88,6 +89,13 @@ export function RoutinesScreen() {
           </View>
           {routine.notes ? <Text style={styles.notes}>{routine.notes}</Text> : null}
           <Text style={styles.meta}>{routine.exercises.length} exercises</Text>
+          <View style={styles.exerciseList}>
+            {routine.exercises.map((exercise) => (
+              <Text key={exercise.id} style={styles.exercise}>
+                {exercise.name} - {formatSetGroups(getExerciseSetGroups(exercise))}
+              </Text>
+            ))}
+          </View>
         </Pressable>
       ))}
     </ScrollView>
@@ -131,6 +139,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
     textTransform: 'uppercase',
+  },
+  exercise: {
+    color: '#334155',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  exerciseList: {
+    gap: 6,
   },
   header: {
     alignItems: 'center',

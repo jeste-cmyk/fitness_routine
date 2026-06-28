@@ -7,6 +7,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { AuthScreen } from '../screens/AuthScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { RoutineEditorScreen } from '../screens/RoutineEditorScreen';
 import { RoutinesScreen } from '../screens/RoutinesScreen';
@@ -30,6 +31,7 @@ function MainTabs() {
           const icons = {
             Today: 'today-outline',
             Routines: 'barbell-outline',
+            History: 'time-outline',
             Profile: 'person-circle-outline',
           } as const;
 
@@ -39,6 +41,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Today" component={TodayScreen} />
       <Tab.Screen name="Routines" component={RoutinesScreen} />
+      <Tab.Screen name="History" component={HistoryScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

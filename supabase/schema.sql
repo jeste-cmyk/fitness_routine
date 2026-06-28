@@ -15,6 +15,7 @@ create table if not exists public.routine_exercises (
   name text not null check (length(trim(name)) > 0),
   reps integer not null check (reps > 0),
   sets integer not null check (sets > 0),
+  set_groups jsonb not null default '[]'::jsonb,
   sort_order integer not null default 0
 );
 
@@ -43,10 +44,33 @@ create table if not exists public.workout_exercise_logs (
   name text not null,
   planned_reps integer not null check (planned_reps > 0),
   planned_sets integer not null check (planned_sets > 0),
+  planned_set_groups jsonb,
   actual_reps integer not null check (actual_reps > 0),
   actual_sets integer not null check (actual_sets > 0),
+  actual_set_groups jsonb,
   notes text
 );
+
+alter table public.routine_exercises
+add column if not exists set_groups jsonb not null default '[]'::jsonb;
+
+alter table public.workout_exercise_logs
+add column if not exists planned_set_groups jsonb;
+
+alter table public.workout_exercise_logs
+add column if not exists actual_set_groups jsonb;
+
+update public.routine_exercises
+set set_groups = jsonb_build_array(jsonb_build_object('reps', reps, 'sets', sets))
+where set_groups = '[]'::jsonb;
+
+update public.workout_exercise_logs
+set planned_set_groups = jsonb_build_array(jsonb_build_object('reps', planned_reps, 'sets', planned_sets))
+where planned_set_groups is null;
+
+update public.workout_exercise_logs
+set actual_set_groups = jsonb_build_array(jsonb_build_object('reps', actual_reps, 'sets', actual_sets))
+where actual_set_groups is null;
 
 create index if not exists routines_user_id_idx on public.routines(user_id);
 create index if not exists routine_exercises_routine_id_idx on public.routine_exercises(routine_id);

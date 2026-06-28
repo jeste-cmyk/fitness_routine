@@ -11,9 +11,11 @@ export function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function submit() {
-    const normalizedEmail = email.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    setMessage(null);
 
     if (!normalizedEmail || !password) {
       Alert.alert('Missing details', 'Enter an email and password to continue.');
@@ -35,13 +37,22 @@ export function AuthScreen() {
       if (mode === 'signIn') {
         await signIn(normalizedEmail, password);
       } else {
-        await signUp(normalizedEmail, password);
+        const result = await signUp(normalizedEmail, password);
+
+        if (result.session) {
+          setMessage('Account created. You are signed in.');
+          return;
+        }
+
         setMode('signIn');
         setPassword('');
-        Alert.alert('Account created', 'Check your email if your Supabase project requires confirmation.');
+        setMessage('Account created. Confirm your email before signing in.');
+        Alert.alert('Confirm your email', 'Supabase created the account, but email confirmation is required before sign in.');
       }
     } catch (error) {
-      Alert.alert('Authentication failed', getAuthErrorMessage(error, mode));
+      const errorMessage = getAuthErrorMessage(error, mode);
+      setMessage(errorMessage);
+      Alert.alert('Authentication failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -81,9 +92,13 @@ export function AuthScreen() {
           />
           <AppButton
             label={mode === 'signIn' ? 'Need an account?' : 'Already have an account?'}
-            onPress={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}
+            onPress={() => {
+              setMessage(null);
+              setMode(mode === 'signIn' ? 'signUp' : 'signIn');
+            }}
             variant="ghost"
           />
+          {message ? <Text style={styles.message}>{message}</Text> : null}
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -131,6 +146,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 48,
     paddingHorizontal: 14,
+  },
+  message: {
+    color: '#475569',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   panel: {
     gap: 28,
