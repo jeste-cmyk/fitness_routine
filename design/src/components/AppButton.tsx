@@ -1,7 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 
-import { colors, radius, shadows } from '../theme';
-
 type AppButtonProps = {
   label: string;
   onPress: () => void;
@@ -27,21 +25,12 @@ export function AppButton({
       style={({ pressed }) => [
         styles.base,
         styles[variant],
-        variant === 'primary' && shadows.primary,
         (pressed || disabled || loading) && styles.pressed,
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={variant === 'primary' ? colors.onPrimary : colors.primaryDark} /> : null}
-      <Text
-        style={[
-          styles.label,
-          variant === 'primary' && styles.primaryLabel,
-          variant === 'secondary' && styles.secondaryLabel,
-          variant === 'ghost' && styles.ghostLabel,
-          variant === 'danger' && styles.dangerLabel,
-        ]}
-      >
+      {loading ? <ActivityIndicator color={variant === 'primary' ? '#ffffff' : '#0f172a'} /> : null}
+      <Text style={[styles.label, variant === 'primary' && styles.primaryLabel, variant === 'danger' && styles.dangerLabel]}>
         {label}
       </Text>
     </Pressable>
@@ -51,48 +40,39 @@ export function AppButton({
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: radius.md,
+    borderRadius: 8,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
-    minHeight: 50,
-    paddingHorizontal: 18,
+    minHeight: 48,
+    paddingHorizontal: 16,
   },
   danger: {
-    backgroundColor: colors.dangerBg,
-    borderColor: colors.dangerBorder,
-    borderWidth: 2,
+    backgroundColor: '#fff1f2',
+    borderColor: '#fecdd3',
+    borderWidth: 1,
   },
   dangerLabel: {
-    color: colors.dangerText,
+    color: '#be123c',
   },
   ghost: {
     backgroundColor: 'transparent',
   },
-  ghostLabel: {
-    color: colors.primaryDark,
-  },
   label: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   pressed: {
-    opacity: 0.78,
-    transform: [{ translateY: 1 }],
+    opacity: 0.72,
   },
   primary: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#0f766e',
   },
   primaryLabel: {
-    color: colors.onPrimary,
+    color: '#ffffff',
   },
   secondary: {
-    backgroundColor: colors.chipBlueBg,
-    borderColor: colors.borderStrong,
-    borderWidth: 2,
-  },
-  secondaryLabel: {
-    color: colors.primaryDark,
+    backgroundColor: '#e0f2fe',
   },
 });

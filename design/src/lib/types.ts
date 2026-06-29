@@ -61,29 +61,6 @@ export type WorkoutHistorySession = WorkoutSession & {
   logs: WorkoutExerciseLog[];
 };
 
-export type ExerciseProgressTrend = 'up' | 'down' | 'flat';
-
-export type ExerciseProgressEntry = {
-  id: string;
-  exerciseName: string;
-  scheduledDate: string;
-  completedAt: string | null;
-  sessionId: string;
-  workoutName: string;
-  actualSetGroups: RepSetGroup[];
-  totalSets: number;
-  totalReps: number;
-};
-
-export type ExerciseProgressSummary = {
-  exerciseName: string;
-  entries: ExerciseProgressEntry[];
-  entryCount: number;
-  lastTotalReps: number;
-  bestTotalReps: number;
-  trend: ExerciseProgressTrend;
-};
-
 export type EditableExercise = {
   id?: string;
   name: string;

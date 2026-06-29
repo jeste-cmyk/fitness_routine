@@ -1,9 +1,8 @@
 export type RootStackParamList = {
   MainTabs: undefined;
   RoutineEditor: { routineId?: string } | undefined;
-  Workout: { routineId: string } | { sessionId: string };
+  Workout: { routineId: string };
   QuickLog: { mode: 'routine' | 'failure' };
-  ExerciseProgress: { exerciseName: string };
 };
 
 export type MainTabParamList = {

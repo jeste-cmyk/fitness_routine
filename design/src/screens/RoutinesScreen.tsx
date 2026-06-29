@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '../components/AppButton';
 import { EmptyState } from '../components/EmptyState';
-import { colors, radius, shadows } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { formatSetGroups, getExerciseSetGroups } from '../lib/exercisePlan';
 import { fetchRoutineDetails } from '../lib/routines';
@@ -14,9 +13,6 @@ import { RoutineWithDetails, WEEKDAYS } from '../lib/types';
 import { RootStackParamList } from '../navigation/types';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
-
-// Cycle a few accent colors across the cards so the library feels lively.
-const ACCENTS = [colors.primary, colors.green, colors.amber];
 
 function formatSchedule(routine: RoutineWithDetails) {
   const activeDays = routine.schedule.filter((item) => item.is_active).map((item) => item.weekday);
@@ -77,21 +73,17 @@ export function RoutinesScreen() {
         <AppButton label="Add" onPress={() => navigation.navigate('RoutineEditor')} style={styles.addButton} />
       </View>
 
-      {loading ? <ActivityIndicator color={colors.primary} size="large" /> : null}
+      {loading ? <ActivityIndicator color="#0f766e" size="large" /> : null}
 
       {!loading && routines.length === 0 ? (
         <EmptyState title="No routines yet" message="Create your first routine, add exercises, and schedule it for the week." />
       ) : null}
 
-      {routines.map((routine, index) => (
+      {routines.map((routine) => (
         <Pressable
           key={routine.id}
           onPress={() => navigation.navigate('RoutineEditor', { routineId: routine.id })}
-          style={({ pressed }) => [
-            styles.card,
-            { borderLeftColor: ACCENTS[index % ACCENTS.length] },
-            pressed && styles.cardPressed,
-          ]}
+          style={styles.card}
         >
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{routine.name}</Text>
@@ -116,17 +108,12 @@ const styles = StyleSheet.create({
     minWidth: 84,
   },
   card: {
-    ...shadows.card,
-    backgroundColor: colors.surface,
-    borderLeftColor: colors.primary,
-    borderLeftWidth: 5,
-    borderRadius: radius.xl,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
     gap: 10,
-    padding: 18,
-  },
-  cardPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }],
+    padding: 16,
   },
   cardHeader: {
     alignItems: 'flex-start',
@@ -135,13 +122,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTitle: {
-    color: colors.navy,
+    color: '#0f172a',
     flex: 1,
     fontSize: 20,
     fontWeight: '900',
   },
   container: {
-    backgroundColor: colors.appBg,
+    backgroundColor: '#f8fafc',
   },
   content: {
     gap: 16,
@@ -149,16 +136,14 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   eyebrow: {
-    color: colors.primaryDark,
-    fontSize: 12,
+    color: '#0f766e',
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   exercise: {
-    color: colors.body,
+    color: '#334155',
     fontSize: 15,
-    fontWeight: '600',
     lineHeight: 22,
   },
   exerciseList: {
@@ -174,23 +159,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notes: {
-    color: colors.textMuted,
+    color: '#64748b',
     fontSize: 15,
-    fontWeight: '600',
     lineHeight: 22,
   },
   schedule: {
-    backgroundColor: colors.chipBlueBg,
-    borderRadius: radius.pill,
-    color: colors.chipBlueText,
+    backgroundColor: '#e0f2fe',
+    borderRadius: 999,
+    color: '#075985',
     fontSize: 12,
-    fontWeight: '900',
-    overflow: 'hidden',
-    paddingHorizontal: 11,
+    fontWeight: '800',
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
   title: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 34,
     fontWeight: '900',
   },

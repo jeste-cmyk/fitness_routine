@@ -3,9 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/AppButton';
-import { PositiveIntegerInput } from '../components/PositiveIntegerInput';
 import { Screen } from '../components/Screen';
-import { colors, radius, shadows } from '../theme';
 import { confirm, notify } from '../lib/confirm';
 import { useAuth } from '../contexts/AuthContext';
 import { getExerciseSetGroups } from '../lib/exercisePlan';
@@ -24,6 +22,11 @@ const blankSetGroup = (): RepSetGroup => ({
   reps: 1,
   sets: 1,
 });
+
+function parsePositiveInt(value: string) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
+}
 
 export function RoutineEditorScreen({ navigation, route }: Props) {
   const routineId = route.params?.routineId;
@@ -211,7 +214,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
       <TextInput
         onChangeText={setName}
         placeholder="Routine name"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor="#94a3b8"
         style={styles.input}
         value={name}
       />
@@ -219,7 +222,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
         multiline
         onChangeText={setNotes}
         placeholder="Notes"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor="#94a3b8"
         style={[styles.input, styles.notesInput]}
         value={notes}
       />
@@ -254,7 +257,7 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
           <TextInput
             onChangeText={(value) => updateExercise(index, { ...exercise, name: value })}
             placeholder="Exercise name"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor="#94a3b8"
             style={styles.input}
             value={exercise.name}
           />
@@ -289,10 +292,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                       variant="secondary"
                       style={styles.stepperButton}
                     />
-                    <PositiveIntegerInput
-                      onChangeValue={(value) => updateSet(index, setIndex, { reps: value })}
+                    <TextInput
+                      keyboardType="number-pad"
+                      onChangeText={(value) => updateSet(index, setIndex, { reps: parsePositiveInt(value) })}
                       style={[styles.input, styles.stepperValue]}
-                      value={set.reps}
+                      value={String(set.reps)}
                     />
                     <AppButton
                       label="+"
@@ -309,10 +313,11 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                       variant="secondary"
                       style={styles.stepperButton}
                     />
-                    <PositiveIntegerInput
-                      onChangeValue={(value) => updateSet(index, setIndex, { sets: value })}
+                    <TextInput
+                      keyboardType="number-pad"
+                      onChangeText={(value) => updateSet(index, setIndex, { sets: parsePositiveInt(value) })}
                       style={[styles.input, styles.stepperValue]}
-                      value={set.sets}
+                      value={String(set.sets)}
                     />
                     <AppButton
                       label="+"
@@ -358,16 +363,17 @@ const styles = StyleSheet.create({
     minWidth: 64,
   },
   exerciseCard: {
-    ...shadows.card,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
     gap: 12,
-    padding: 16,
+    padding: 14,
   },
   exerciseDetails: {
-    backgroundColor: colors.mutedBg,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
     borderWidth: 1,
     gap: 10,
     padding: 12,
@@ -380,7 +386,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   exerciseDetailsTitle: {
-    color: colors.body,
+    color: '#334155',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -388,24 +394,23 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   exerciseNamePreview: {
-    color: colors.textMuted,
+    color: '#64748b',
     fontSize: 14,
     fontWeight: '700',
   },
   exerciseTitle: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 17,
     fontWeight: '900',
   },
   input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    color: colors.navy,
+    backgroundColor: '#ffffff',
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '700',
-    minHeight: 50,
+    minHeight: 48,
     paddingHorizontal: 14,
   },
   notesInput: {
@@ -426,7 +431,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 20,
     fontWeight: '900',
   },
@@ -434,9 +439,9 @@ const styles = StyleSheet.create({
     minWidth: 72,
   },
   setRow: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
     borderWidth: 1,
     gap: 10,
     padding: 10,
@@ -447,7 +452,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   setRowLabel: {
-    color: colors.textMuted,
+    color: '#475569',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -471,12 +476,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stepperUnit: {
-    color: colors.textMuted,
+    color: '#64748b',
     fontSize: 13,
     fontWeight: '700',
   },
   title: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 22,
     fontWeight: '900',
   },

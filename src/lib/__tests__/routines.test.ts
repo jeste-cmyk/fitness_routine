@@ -7,12 +7,15 @@ import {
   deleteWorkoutSession,
   fetchCompletedWorkoutsForDate,
   fetchCompletedRoutineIdsForDate,
+  fetchExerciseProgress,
   fetchRoutineById,
   fetchRoutineDetails,
+  fetchWorkoutSessionById,
   fetchWorkoutHistory,
   logAdHocWorkout,
   markRoutineIncomplete,
   saveRoutineDetails,
+  updateWorkoutSessionLogs,
 } from '../routines';
 import { __reset, __setResponses, calls } from '../../test-utils/supabaseMock';
 import type { EditableExercise, WorkoutExerciseLogInput } from '../types';
@@ -327,6 +330,53 @@ describe('fetchCompletedWorkoutsForDate', () => {
   });
 });
 
+describe('fetchWorkoutSessionById', () => {
+  it('returns the requested completed session with normalized logs', async () => {
+    __setResponses({
+      'workout_sessions.select': {
+        data: {
+          id: 's1',
+          user_id: 'u1',
+          routine_id: 'r1',
+          scheduled_date: '2026-06-28',
+          status: 'completed',
+          routines: { name: 'Push day' },
+          workout_exercise_logs: [
+            {
+              id: 'l1',
+              workout_session_id: 's1',
+              routine_exercise_id: 're1',
+              name: 'Bench',
+              planned_reps: 10,
+              planned_sets: 3,
+              planned_set_groups: null,
+              actual_reps: 8,
+              actual_sets: 3,
+              actual_set_groups: null,
+              notes: null,
+            },
+          ],
+        },
+        error: null,
+      },
+    });
+
+    const session = await fetchWorkoutSessionById('u1', 's1');
+
+    expect(session.id).toBe('s1');
+    expect(session.routine_name).toBe('Push day');
+    expect(session.logs[0].actual_set_groups).toEqual([{ reps: 8, sets: 3 }]);
+
+    const select = callFor('workout_sessions', 'select');
+    const eqArgs = select?.chain.filter((c) => c.method === 'eq').map((c) => c.args);
+    expect(eqArgs).toEqual([
+      ['user_id', 'u1'],
+      ['id', 's1'],
+      ['status', 'completed'],
+    ]);
+  });
+});
+
 describe('completeWorkout', () => {
   it('creates a completed session and inserts exercise logs', async () => {
     __setResponses({
@@ -436,6 +486,56 @@ describe('logAdHocWorkout', () => {
 
     const logsInsert = callFor('workout_exercise_logs', 'insert');
     expect((logsInsert?.payload as Array<{ routine_exercise_id: unknown }>)[0].routine_exercise_id).toBeNull();
+  });
+});
+
+describe('updateWorkoutSessionLogs', () => {
+  it('updates the session title and existing exercise logs', async () => {
+    __setResponses({
+      'workout_sessions.update': { data: null, error: null },
+      'workout_exercise_logs.update': { data: null, error: null },
+    });
+
+    await updateWorkoutSessionLogs({
+      sessionId: 's1',
+      title: '  Quick burn  ',
+      logs: [{ ...sampleLog({ name: '  Bench press  ', notes: '  better  ' }), logId: 'l1' }],
+    });
+
+    const sessionUpdate = callFor('workout_sessions', 'update');
+    expect(sessionUpdate?.payload).toEqual({ title: 'Quick burn' });
+    expect(findChain(sessionUpdate, 'eq')?.args).toEqual(['id', 's1']);
+
+    const logUpdate = callFor('workout_exercise_logs', 'update');
+    expect(logUpdate?.payload).toEqual({
+      workout_session_id: 's1',
+      routine_exercise_id: 're-1',
+      name: 'Bench press',
+      planned_reps: 10,
+      planned_sets: 3,
+      planned_set_groups: [{ reps: 10, sets: 3 }],
+      actual_reps: 8,
+      actual_sets: 3,
+      actual_set_groups: [{ reps: 8, sets: 3 }],
+      notes: 'better',
+    });
+    const eqArgs = logUpdate?.chain.filter((c) => c.method === 'eq').map((c) => c.args);
+    expect(eqArgs).toEqual([
+      ['id', 'l1'],
+      ['workout_session_id', 's1'],
+    ]);
+  });
+
+  it('rejects blank exercise names before writing', async () => {
+    await expect(
+      updateWorkoutSessionLogs({
+        sessionId: 's1',
+        title: null,
+        logs: [{ ...sampleLog({ name: '   ' }), logId: 'l1' }],
+      }),
+    ).rejects.toThrow('Every exercise needs a name');
+
+    expect(calls).toHaveLength(0);
   });
 });
 
@@ -568,6 +668,174 @@ describe('fetchWorkoutHistory', () => {
     // Ad-hoc session: no routine name, no logs.
     expect(history[1].routine_name).toBeNull();
     expect(history[1].logs).toEqual([]);
+  });
+});
+
+describe('fetchExerciseProgress', () => {
+  it('groups exercises, calculates volume, normalizes legacy logs and trends', async () => {
+    __setResponses({
+      'workout_exercise_logs.select': {
+        data: [
+          {
+            id: 'l1',
+            workout_session_id: 's1',
+            routine_exercise_id: 're1',
+            name: 'Bench Press',
+            planned_reps: 10,
+            planned_sets: 3,
+            planned_set_groups: null,
+            actual_reps: 11,
+            actual_sets: 3,
+            actual_set_groups: [{ reps: 11, sets: 3 }],
+            notes: null,
+            workout_sessions: {
+              id: 's1',
+              user_id: 'u1',
+              routine_id: 'r1',
+              title: null,
+              scheduled_date: '2026-06-29',
+              completed_at: '2026-06-29T13:00:00.000Z',
+              status: 'completed',
+              routines: { name: 'Push day' },
+            },
+          },
+          {
+            id: 'l2',
+            workout_session_id: 's2',
+            routine_exercise_id: 're1',
+            name: ' bench press ',
+            planned_reps: 10,
+            planned_sets: 3,
+            planned_set_groups: null,
+            actual_reps: 10,
+            actual_sets: 3,
+            actual_set_groups: [
+              { reps: 10, sets: 2 },
+              { reps: 8, sets: 1 },
+            ],
+            notes: null,
+            workout_sessions: {
+              id: 's2',
+              user_id: 'u1',
+              routine_id: 'r1',
+              title: null,
+              scheduled_date: '2026-06-27',
+              completed_at: '2026-06-27T13:00:00.000Z',
+              status: 'completed',
+              routines: { name: 'Push day' },
+            },
+          },
+          {
+            id: 'l3',
+            workout_session_id: 's3',
+            routine_exercise_id: null,
+            name: 'Squat',
+            planned_reps: 12,
+            planned_sets: 2,
+            planned_set_groups: null,
+            actual_reps: 8,
+            actual_sets: 2,
+            actual_set_groups: [{ reps: 8, sets: 2 }],
+            notes: null,
+            workout_sessions: {
+              id: 's3',
+              user_id: 'u1',
+              routine_id: null,
+              title: 'Legs quick log',
+              scheduled_date: '2026-06-29',
+              completed_at: '2026-06-29T14:00:00.000Z',
+              status: 'completed',
+              routines: null,
+            },
+          },
+          {
+            id: 'l4',
+            workout_session_id: 's4',
+            routine_exercise_id: null,
+            name: 'squat',
+            planned_reps: 12,
+            planned_sets: 2,
+            planned_set_groups: null,
+            actual_reps: 12,
+            actual_sets: 2,
+            actual_set_groups: null,
+            notes: null,
+            workout_sessions: {
+              id: 's4',
+              user_id: 'u1',
+              routine_id: null,
+              title: 'Older legs',
+              scheduled_date: '2026-06-20',
+              completed_at: '2026-06-20T14:00:00.000Z',
+              status: 'completed',
+              routines: null,
+            },
+          },
+          {
+            id: 'l5',
+            workout_session_id: 's5',
+            routine_exercise_id: null,
+            name: 'Plank',
+            planned_reps: 1,
+            planned_sets: 1,
+            planned_set_groups: null,
+            actual_reps: 1,
+            actual_sets: 1,
+            actual_set_groups: [{ reps: 1, sets: 1 }],
+            notes: null,
+            workout_sessions: {
+              id: 's5',
+              user_id: 'u1',
+              routine_id: null,
+              title: 'Core',
+              scheduled_date: '2026-06-29',
+              completed_at: '2026-06-29T15:00:00.000Z',
+              status: 'completed',
+              routines: null,
+            },
+          },
+        ],
+        error: null,
+      },
+    });
+
+    const progress = await fetchExerciseProgress('u1');
+
+    const bench = progress.find((item) => item.exerciseName === 'Bench Press')!;
+    expect(bench.entryCount).toBe(2);
+    expect(bench.lastTotalReps).toBe(33);
+    expect(bench.bestTotalReps).toBe(33);
+    expect(bench.trend).toBe('up');
+    expect(bench.entries.map((entry) => entry.id)).toEqual(['l1', 'l2']);
+    expect(bench.entries[1]).toMatchObject({
+      totalSets: 3,
+      totalReps: 28,
+      workoutName: 'Push day',
+    });
+
+    const squat = progress.find((item) => item.exerciseName === 'Squat')!;
+    expect(squat.lastTotalReps).toBe(16);
+    expect(squat.bestTotalReps).toBe(24);
+    expect(squat.trend).toBe('down');
+    expect(squat.entries[1].actualSetGroups).toEqual([{ reps: 12, sets: 2 }]);
+    expect(squat.entries[0].workoutName).toBe('Legs quick log');
+
+    const plank = progress.find((item) => item.exerciseName === 'Plank')!;
+    expect(plank.trend).toBe('flat');
+
+    const select = callFor('workout_exercise_logs', 'select');
+    expect(findChain(select, 'select')?.args[0]).toContain('workout_sessions!inner');
+    const eqArgs = select?.chain.filter((c) => c.method === 'eq').map((c) => c.args);
+    expect(eqArgs).toEqual([
+      ['workout_sessions.user_id', 'u1'],
+      ['workout_sessions.status', 'completed'],
+    ]);
+  });
+
+  it('returns an empty array when there are no exercise logs', async () => {
+    __setResponses({ 'workout_exercise_logs.select': { data: [], error: null } });
+
+    expect(await fetchExerciseProgress('u1')).toEqual([]);
   });
 });
 

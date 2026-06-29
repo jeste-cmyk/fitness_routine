@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import { AppButton } from '../components/AppButton';
-import { colors, radius, shadows } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 
 export function AuthScreen() {
@@ -62,12 +61,9 @@ export function AuthScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.hero}>
-          <Image source={require('../../assets/dragon.png')} style={styles.mascot} />
-          <Text style={styles.title}>Fitness Routine</Text>
-          <Text style={styles.subtitle}>Plan today. Track what you actually did.</Text>
-        </View>
+      <View style={styles.panel}>
+        <Text style={styles.title}>Fitness Routine</Text>
+        <Text style={styles.subtitle}>Plan today. Track what you actually did.</Text>
 
         <View style={styles.form}>
           <TextInput
@@ -76,7 +72,7 @@ export function AuthScreen() {
             keyboardType="email-address"
             onChangeText={setEmail}
             placeholder="Email"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor="#94a3b8"
             style={styles.input}
             value={email}
           />
@@ -84,7 +80,7 @@ export function AuthScreen() {
             autoCapitalize="none"
             onChangeText={setPassword}
             placeholder="Password"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor="#94a3b8"
             secureTextEntry
             style={styles.input}
             value={password}
@@ -104,7 +100,7 @@ export function AuthScreen() {
           />
           {message ? <Text style={styles.message}>{message}</Text> : null}
         </View>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -133,58 +129,41 @@ function getAuthErrorMessage(error: unknown, mode: 'signIn' | 'signUp') {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.appBg,
+    backgroundColor: '#f8fafc',
     flex: 1,
+    justifyContent: 'center',
+    padding: 20,
   },
   form: {
-    gap: 13,
-  },
-  hero: {
-    alignItems: 'center',
     gap: 12,
-    marginBottom: 34,
   },
   input: {
-    ...shadows.soft,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    color: colors.navy,
+    backgroundColor: '#ffffff',
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '700',
-    minHeight: 52,
-    paddingHorizontal: 16,
-  },
-  mascot: {
-    borderRadius: 34,
-    height: 128,
-    width: 128,
+    minHeight: 48,
+    paddingHorizontal: 14,
   },
   message: {
-    color: colors.textMuted,
+    color: '#475569',
     fontSize: 14,
-    fontWeight: '600',
     lineHeight: 20,
     textAlign: 'center',
   },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
+  panel: {
+    gap: 28,
   },
   subtitle: {
-    color: colors.textMuted,
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 23,
-    maxWidth: 260,
-    textAlign: 'center',
+    color: '#475569',
+    fontSize: 17,
+    lineHeight: 24,
   },
   title: {
-    color: colors.navy,
-    fontSize: 34,
+    color: '#0f172a',
+    fontSize: 36,
     fontWeight: '900',
-    marginTop: 8,
   },
 });

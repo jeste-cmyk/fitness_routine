@@ -1,8 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-import { colors, radius } from '../theme';
-
 export function SupabaseSetupScreen() {
   return (
     <View style={styles.container}>
@@ -19,30 +17,29 @@ export function SupabaseSetupScreen() {
 
 const styles = StyleSheet.create({
   body: {
-    color: colors.textMuted,
+    color: '#475569',
     fontSize: 16,
-    fontWeight: '600',
     lineHeight: 24,
     textAlign: 'center',
   },
   code: {
-    backgroundColor: colors.border,
-    borderRadius: radius.sm,
-    color: colors.navy,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 8,
+    color: '#0f172a',
     fontFamily: 'monospace',
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   container: {
     alignItems: 'center',
-    backgroundColor: colors.appBg,
+    backgroundColor: '#f8fafc',
     flex: 1,
     gap: 16,
     justifyContent: 'center',
     padding: 24,
   },
   title: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 28,
     fontWeight: '900',
   },

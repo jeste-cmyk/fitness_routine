@@ -6,10 +6,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../contexts/AuthContext';
-import { colors } from '../theme';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { AuthScreen } from '../screens/AuthScreen';
-import { ExerciseProgressScreen } from '../screens/ExerciseProgressScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { QuickLogScreen } from '../screens/QuickLogScreen';
@@ -30,9 +28,9 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textFaint,
-        tabBarActiveBackgroundColor: colors.chipBlueBg,
+        tabBarActiveTintColor: '#0f766e',
+        tabBarInactiveTintColor: '#64748b',
+        tabBarActiveBackgroundColor: '#ccfbf1',
         tabBarStyle: [styles.tabBar, { height: 70 + insets.bottom, paddingBottom: 10 + insets.bottom }],
         tabBarItemStyle: styles.tabBarItem,
         tabBarLabelStyle: styles.tabBarLabel,
@@ -66,7 +64,7 @@ export function AppNavigator() {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color={colors.primary} size="large" />
+        <ActivityIndicator color="#0f766e" size="large" />
       </View>
     );
   }
@@ -74,24 +72,11 @@ export function AppNavigator() {
   return (
     <NavigationContainer>
       {session ? (
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.appBg },
-            headerShadowVisible: false,
-            headerTintColor: colors.primaryDark,
-            headerTitleStyle: { color: colors.navy, fontWeight: '900' },
-            contentStyle: { backgroundColor: colors.appBg },
-          }}
-        >
+        <Stack.Navigator>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="RoutineEditor" component={RoutineEditorScreen} options={{ title: 'Routine' }} />
           <Stack.Screen name="Workout" component={WorkoutScreen} options={{ title: 'Workout' }} />
           <Stack.Screen name="QuickLog" component={QuickLogScreen} options={{ title: 'Quick log' }} />
-          <Stack.Screen
-            name="ExerciseProgress"
-            component={ExerciseProgressScreen}
-            options={({ route }) => ({ title: route.params.exerciseName })}
-          />
         </Stack.Navigator>
       ) : (
         <AuthScreen />
@@ -103,20 +88,19 @@ export function AppNavigator() {
 const styles = StyleSheet.create({
   loading: {
     alignItems: 'center',
-    backgroundColor: colors.appBg,
+    backgroundColor: '#f8fafc',
     flex: 1,
     justifyContent: 'center',
   },
   tabBar: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
+    borderTopColor: '#e2e8f0',
     paddingTop: 10,
   },
   tabBarItem: {
-    borderRadius: 16,
+    borderRadius: 14,
     marginHorizontal: 8,
   },
   tabBarLabel: {
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

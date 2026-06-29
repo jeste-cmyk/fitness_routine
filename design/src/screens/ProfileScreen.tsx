@@ -1,8 +1,7 @@
-import { Alert, Image, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '../components/AppButton';
 import { Screen } from '../components/Screen';
-import { colors, radius, shadows } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 
 export function ProfileScreen() {
@@ -23,12 +22,6 @@ export function ProfileScreen() {
         <Text style={styles.title}>Profile</Text>
       </View>
 
-      <View style={styles.hero}>
-        <Image source={require('../../assets/dragon.png')} style={styles.avatar} />
-        <Text style={styles.heroName}>{user?.email?.split('@')[0] ?? 'Athlete'}</Text>
-        <Text style={styles.heroSubtitle}>Keep the streak alive 🔥</Text>
-      </View>
-
       <View style={styles.card}>
         <Text style={styles.label}>Signed in as</Text>
         <Text style={styles.email}>{user?.email}</Text>
@@ -40,53 +33,32 @@ export function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  avatar: {
-    borderRadius: 26,
-    height: 104,
-    width: 104,
-  },
   card: {
-    ...shadows.card,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
     gap: 6,
-    padding: 18,
+    padding: 16,
   },
   email: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   eyebrow: {
-    color: colors.primaryDark,
-    fontSize: 12,
+    color: '#0f766e',
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
-  hero: {
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-  },
-  heroName: {
-    color: colors.navy,
-    fontSize: 22,
-    fontWeight: '900',
-    textTransform: 'capitalize',
-  },
-  heroSubtitle: {
-    color: colors.textMuted,
+  label: {
+    color: '#64748b',
     fontSize: 14,
     fontWeight: '700',
   },
-  label: {
-    color: colors.textSubtle,
-    fontSize: 13,
-    fontWeight: '800',
-  },
   title: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 34,
     fontWeight: '900',
   },

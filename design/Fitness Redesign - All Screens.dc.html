@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  .scr::-webkit-scrollbar { display:none; }
+  @keyframes bob { 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-6px) } }
+  @keyframes grow { from{ transform: scaleX(0) } to{ transform: scaleX(1) } }
+  @keyframes pop { from{ transform: scale(.7); opacity:0 } to{ transform: scale(1); opacity:1 } }
+  @keyframes ringfill { from{ background: conic-gradient(#2f9bf0 0%, #dbe6f1 0) } }
+</style>
+</helmet>
+
+<!-- ============================================================ AUTH ============================================================ -->
+<div style="position:absolute; left:80px; top:140px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">01 · Sign in</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div style="background:linear-gradient(180deg,#eaf4fe,#eef4fa); border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="height:30px; display:flex; align-items:center; justify-content:space-between; padding:8px 26px 0; font:800 13px Nunito; color:#16314f"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+      <div style="padding:48px 30px 0; display:flex; flex-direction:column; align-items:center; text-align:center">
+        <img src="assets/dragon-blue.png" alt="" style="width:132px; height:132px; border-radius:34px; box-shadow:0 18px 36px rgba(47,155,240,.34); animation:bob 3.4s ease-in-out infinite">
+        <div style="font:900 34px/1 Nunito; color:#16314f; margin-top:26px">Fitness Routine</div>
+        <div style="font:700 16px/1.45 Nunito; color:#5e788f; margin-top:12px; max-width:250px">Plan today. Track what you actually did.</div>
+      </div>
+      <div style="margin:34px 26px 0; display:flex; flex-direction:column; gap:13px">
+        <div style="background:#fff; border:2px solid #e3ecf5; border-radius:16px; padding:16px 16px; font:700 15px Nunito; color:#9fb0c2; box-shadow:0 3px 10px rgba(20,40,70,.04)">Email</div>
+        <div style="background:#fff; border:2px solid #e3ecf5; border-radius:16px; padding:16px 16px; font:700 15px Nunito; color:#9fb0c2; box-shadow:0 3px 10px rgba(20,40,70,.04)">Password</div>
+        <div style="margin-top:6px; text-align:center; background:linear-gradient(145deg,#3aa3f4,#2585e0); border-radius:16px; padding:16px; font:900 16px Nunito; color:#fff; box-shadow:0 12px 22px rgba(47,155,240,.4); transition:transform .15s, box-shadow .15s" style-hover="transform:translateY(-2px); box-shadow:0 16px 28px rgba(47,155,240,.5)">Sign in</div>
+        <div style="text-align:center; padding:13px; font:800 14px Nunito; color:#2f9bf0">Need an account?</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TODAY ============================================================ -->
+<div style="position:absolute; left:566px; top:140px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">02 · Today</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div class="scr" style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="background:linear-gradient(160deg,#3aa3f4,#2585e0); padding:34px 22px 26px; border-radius:0 0 30px 30px; color:#fff">
+        <div style="display:flex; align-items:center; justify-content:space-between; font:800 13px Nunito; opacity:.9"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+        <div style="display:flex; align-items:center; gap:16px; margin-top:14px">
+          <img src="assets/dragon-blue.png" alt="" style="width:84px; height:84px; border-radius:22px; box-shadow:0 12px 26px rgba(0,0,0,.22); animation:bob 3.2s ease-in-out infinite">
+          <div style="flex:1">
+            <div style="font:900 12px Nunito; letter-spacing:.14em; text-transform:uppercase; opacity:.85">Monday · Level 7</div>
+            <div style="font:900 30px/1 Nunito; margin:4px 0 9px">Today</div>
+            <div style="height:8px; background:rgba(255,255,255,.28); border-radius:99px; overflow:hidden"><div style="height:100%; width:67%; background:#ffd27a; border-radius:99px; transform-origin:left; animation:grow 1s .15s both ease-out"></div></div>
+            <div style="font:800 10px Nunito; margin-top:5px; opacity:.85">320 / 480 XP to Level 8</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; padding:16px 22px 4px">
+        <div style="flex:1; background:#fff; border-radius:16px; padding:11px; text-align:center; box-shadow:0 4px 12px rgba(20,40,70,.06); animation:pop .4s .2s both"><div style="font:900 20px Nunito; color:#f6a124">5</div><div style="font:800 9px Nunito; color:#8499b0; letter-spacing:.06em; text-transform:uppercase">Day streak</div></div>
+        <div style="flex:1; background:#fff; border-radius:16px; padding:11px; text-align:center; box-shadow:0 4px 12px rgba(20,40,70,.06); animation:pop .4s .3s both"><div style="font:900 20px Nunito; color:#2f9bf0">2/3</div><div style="font:800 9px Nunito; color:#8499b0; letter-spacing:.06em; text-transform:uppercase">Done today</div></div>
+        <div style="flex:1; background:#fff; border-radius:16px; padding:11px; text-align:center; box-shadow:0 4px 12px rgba(20,40,70,.06); animation:pop .4s .4s both"><div style="font:900 20px Nunito; color:#1bb673">18</div><div style="font:800 9px Nunito; color:#8499b0; letter-spacing:.06em; text-transform:uppercase">This month</div></div>
+      </div>
+      <div style="margin:14px 22px 4px; display:flex; gap:7px">
+        <div style="background:#16314f; color:#fff; border-radius:99px; padding:8px 18px; font:800 13px Nunito">Pending</div>
+        <div style="color:#8499b0; border-radius:99px; padding:8px 18px; font:800 13px Nunito">Completed</div>
+      </div>
+      <div style="margin:12px 22px 0; background:#fff; border-radius:22px; overflow:hidden; box-shadow:0 8px 22px rgba(20,40,70,.08)">
+        <div style="height:6px; background:linear-gradient(90deg,#2f9bf0,#f6a124)"></div>
+        <div style="padding:16px">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px">
+            <div><div style="font:900 20px Nunito; color:#16314f">Push Day</div><div style="font:700 13px Nunito; color:#7b91a8; margin-top:2px">Chest, shoulders, triceps</div></div>
+            <span style="background:#16314f; color:#fff; font:800 11px Nunito; padding:6px 11px; border-radius:99px; white-space:nowrap">4 exercises</span>
+          </div>
+          <div style="margin-top:12px; display:flex; flex-direction:column; gap:5px; font:700 13px Nunito; color:#415870">
+            <span>Bench Press — 10 reps × 4 series</span>
+            <span>Overhead Press — 8 reps × 3 series</span>
+            <span>Incline Dumbbell — 12 reps × 3 series</span>
+            <span style="color:#9fb0c2">Triceps Pushdown — 15 reps × 3 series</span>
+          </div>
+          <div style="margin-top:14px; display:flex; gap:8px">
+            <div style="flex:1; text-align:center; border:2px solid #e3ebf3; border-radius:14px; padding:11px; font:800 13px Nunito; color:#16314f">Modify</div>
+            <div style="flex:2; text-align:center; background:#2f9bf0; border-radius:14px; padding:12px; font:900 13px Nunito; color:#fff; box-shadow:0 8px 16px rgba(47,155,240,.35); transition:transform .15s" style-hover="transform:translateY(-2px)">Mark complete ✓</div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute; right:22px; bottom:96px; width:60px; height:60px; border-radius:22px; background:linear-gradient(145deg,#f6a124,#f08a00); display:flex; align-items:center; justify-content:center; box-shadow:0 12px 26px rgba(246,161,36,.45); font:300 36px Nunito; color:#fff; transition:transform .15s" style-hover="transform:scale(1.08) rotate(90deg)">+</div>
+      <!-- TABBAR today -->
+      <div style="position:absolute; left:0; right:0; bottom:0; height:80px; background:#fff; border-top:1px solid #e3ecf5; display:flex; padding:11px 14px 22px">
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f9bf0" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg><span style="font:800 9.5px Nunito; color:#2f9bf0">Today</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 9v6M3.5 10.5v3M17.5 9v6M20.5 10.5v3M6.5 12h11"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Routines</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">History</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Profile</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ ROUTINES ============================================================ -->
+<div style="position:absolute; left:1052px; top:140px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">03 · Routines</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div class="scr" style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="height:30px; display:flex; align-items:center; justify-content:space-between; padding:8px 26px 0; font:800 13px Nunito; color:#16314f"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+      <div style="padding:14px 22px 6px; display:flex; align-items:center; gap:12px">
+        <div style="flex:1">
+          <div style="font:900 12px Nunito; letter-spacing:.14em; color:#2f9bf0; text-transform:uppercase">Library</div>
+          <div style="font:900 32px/1 Nunito; color:#16314f; margin-top:3px">Routines</div>
+        </div>
+        <div style="background:linear-gradient(145deg,#3aa3f4,#2585e0); border-radius:14px; padding:11px 20px; font:900 14px Nunito; color:#fff; box-shadow:0 8px 16px rgba(47,155,240,.35); transition:transform .15s" style-hover="transform:translateY(-2px)">＋ Add</div>
+      </div>
+      <div style="padding:8px 22px 0; display:flex; flex-direction:column; gap:13px">
+        <!-- card -->
+        <div style="background:#fff; border-radius:20px; padding:16px; box-shadow:0 6px 18px rgba(20,40,70,.06); border-left:5px solid #2f9bf0">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px">
+            <div style="font:900 19px Nunito; color:#16314f">Push Day</div>
+            <span style="background:#eaf5ff; color:#2585e0; font:800 11px Nunito; padding:6px 10px; border-radius:99px; white-space:nowrap">Mon, Thu</span>
+          </div>
+          <div style="font:700 13px Nunito; color:#7b91a8; margin-top:4px">Chest, shoulders, triceps</div>
+          <div style="margin-top:10px; display:flex; flex-direction:column; gap:4px; font:700 13px Nunito; color:#415870">
+            <span>Bench Press — 10 reps × 4 series</span>
+            <span>Overhead Press — 8 reps × 3 series</span>
+            <span style="color:#9fb0c2">+2 more</span>
+          </div>
+        </div>
+        <div style="background:#fff; border-radius:20px; padding:16px; box-shadow:0 6px 18px rgba(20,40,70,.06); border-left:5px solid #1bb673">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px">
+            <div style="font:900 19px Nunito; color:#16314f">Pull Day</div>
+            <span style="background:#eaf5ff; color:#2585e0; font:800 11px Nunito; padding:6px 10px; border-radius:99px; white-space:nowrap">Tue, Fri</span>
+          </div>
+          <div style="font:700 13px Nunito; color:#7b91a8; margin-top:4px">Back &amp; biceps</div>
+          <div style="margin-top:10px; display:flex; flex-direction:column; gap:4px; font:700 13px Nunito; color:#415870">
+            <span>Deadlift — 5 reps × 5 series</span>
+            <span>Pull Up — 8 reps × 4 series</span>
+            <span style="color:#9fb0c2">+2 more</span>
+          </div>
+        </div>
+        <div style="background:#fff; border-radius:20px; padding:16px; box-shadow:0 6px 18px rgba(20,40,70,.06); border-left:5px solid #f6a124">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px">
+            <div style="font:900 19px Nunito; color:#16314f">Leg Day</div>
+            <span style="background:#eaf5ff; color:#2585e0; font:800 11px Nunito; padding:6px 10px; border-radius:99px; white-space:nowrap">Wed</span>
+          </div>
+          <div style="font:700 13px Nunito; color:#7b91a8; margin-top:4px">Quads, hamstrings, calves</div>
+        </div>
+      </div>
+      <!-- TABBAR routines -->
+      <div style="position:absolute; left:0; right:0; bottom:0; height:80px; background:#fff; border-top:1px solid #e3ecf5; display:flex; padding:11px 14px 22px">
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Today</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f9bf0" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 9v6M3.5 10.5v3M17.5 9v6M20.5 10.5v3M6.5 12h11"/></svg><span style="font:800 9.5px Nunito; color:#2f9bf0">Routines</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">History</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Profile</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ ROUTINE EDITOR ============================================================ -->
+<div style="position:absolute; left:1538px; top:140px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">04 · Routine editor</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div class="scr" style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="height:30px; display:flex; align-items:center; justify-content:space-between; padding:8px 26px 0; font:800 13px Nunito; color:#16314f"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+      <div style="display:flex; align-items:center; gap:12px; padding:6px 18px 8px">
+        <div style="width:38px; height:38px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(20,40,70,.08)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16314f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div style="font:900 19px Nunito; color:#16314f">New routine</div>
+      </div>
+      <div style="padding:4px 22px 0; display:flex; flex-direction:column; gap:11px">
+        <div style="font:900 14px Nunito; color:#16314f; letter-spacing:.02em">Details</div>
+        <div style="background:#fff; border:2px solid #e3ecf5; border-radius:14px; padding:13px 14px; font:800 14px Nunito; color:#16314f">Push Day</div>
+        <div style="background:#fff; border:2px solid #e3ecf5; border-radius:14px; padding:13px 14px; font:700 13px Nunito; color:#9fb0c2; min-height:54px">Chest, shoulders, triceps</div>
+        <div style="font:900 14px Nunito; color:#16314f; margin-top:4px">Schedule</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap">
+          <div style="flex:1; text-align:center; background:#fff; border:2px solid #e3ecf5; border-radius:12px; padding:9px 0; font:800 12px Nunito; color:#9fb0c2">Sun</div>
+          <div style="flex:1; text-align:center; background:#2f9bf0; border-radius:12px; padding:9px 0; font:900 12px Nunito; color:#fff; box-shadow:0 6px 12px rgba(47,155,240,.32)">Mon</div>
+          <div style="flex:1; text-align:center; background:#fff; border:2px solid #e3ecf5; border-radius:12px; padding:9px 0; font:800 12px Nunito; color:#9fb0c2">Tue</div>
+          <div style="flex:1; text-align:center; background:#fff; border:2px solid #e3ecf5; border-radius:12px; padding:9px 0; font:800 12px Nunito; color:#9fb0c2">Wed</div>
+          <div style="flex:1; text-align:center; background:#2f9bf0; border-radius:12px; padding:9px 0; font:900 12px Nunito; color:#fff; box-shadow:0 6px 12px rgba(47,155,240,.32)">Thu</div>
+          <div style="flex:1; text-align:center; background:#fff; border:2px solid #e3ecf5; border-radius:12px; padding:9px 0; font:800 12px Nunito; color:#9fb0c2">Fri</div>
+          <div style="flex:1; text-align:center; background:#fff; border:2px solid #e3ecf5; border-radius:12px; padding:9px 0; font:800 12px Nunito; color:#9fb0c2">Sat</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px">
+          <div style="font:900 14px Nunito; color:#16314f">Exercises</div>
+          <div style="font:800 12px Nunito; color:#2f9bf0; border:2px solid #cfe6fb; border-radius:10px; padding:5px 12px">＋ Add</div>
+        </div>
+        <div style="background:#fff; border-radius:18px; padding:14px; box-shadow:0 6px 16px rgba(20,40,70,.06)">
+          <div style="display:flex; justify-content:space-between; align-items:baseline"><div style="font:900 15px Nunito; color:#16314f">Exercise 1</div><div style="font:700 13px Nunito; color:#7b91a8">Bench Press</div></div>
+          <div style="background:#eef4fa; border-radius:12px; padding:11px; margin-top:11px">
+            <div style="display:flex; justify-content:space-between; align-items:center"><span style="font:800 12px Nunito; color:#5e788f">Set 1</span></div>
+            <div style="display:flex; gap:14px; margin-top:9px; flex-wrap:wrap">
+              <div style="display:flex; align-items:center; gap:7px">
+                <div style="width:34px; height:34px; border-radius:10px; background:#fff; border:2px solid #e3ecf5; display:flex; align-items:center; justify-content:center; font:900 16px Nunito; color:#2f9bf0">−</div>
+                <div style="width:46px; height:34px; border-radius:10px; background:#fff; border:2px solid #e3ecf5; display:flex; align-items:center; justify-content:center; font:900 15px Nunito; color:#16314f">10</div>
+                <div style="width:34px; height:34px; border-radius:10px; background:#fff; border:2px solid #e3ecf5; display:flex; align-items:center; justify-content:center; font:900 16px Nunito; color:#2f9bf0">+</div>
+                <span style="font:700 12px Nunito; color:#7b91a8">reps</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px">
+                <div style="width:34px; height:34px; border-radius:10px; background:#fff; border:2px solid #e3ecf5; display:flex; align-items:center; justify-content:center; font:900 16px Nunito; color:#2f9bf0">−</div>
+                <div style="width:46px; height:34px; border-radius:10px; background:#fff; border:2px solid #e3ecf5; display:flex; align-items:center; justify-content:center; font:900 15px Nunito; color:#16314f">4</div>
+                <div style="width:34px; height:34px; border-radius:10px; background:#fff; border:2px solid #e3ecf5; display:flex; align-items:center; justify-content:center; font:900 16px Nunito; color:#2f9bf0">+</div>
+                <span style="font:700 12px Nunito; color:#7b91a8">series</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center; background:linear-gradient(145deg,#3aa3f4,#2585e0); border-radius:15px; padding:14px; font:900 15px Nunito; color:#fff; box-shadow:0 10px 20px rgba(47,155,240,.38); margin-top:2px">Save routine</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ WORKOUT ============================================================ -->
+<div style="position:absolute; left:80px; top:1020px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">05 · Workout (execute)</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div class="scr" style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="background:linear-gradient(160deg,#3aa3f4,#2585e0); padding:34px 22px 22px; border-radius:0 0 28px 28px; color:#fff">
+        <div style="display:flex; align-items:center; justify-content:space-between; font:800 13px Nunito; opacity:.9"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:12px">
+          <div style="width:34px; height:34px; border-radius:11px; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+          <div style="font:900 12px Nunito; letter-spacing:.16em; text-transform:uppercase; opacity:.85">Executing</div>
+        </div>
+        <div style="font:900 28px/1 Nunito; margin-top:8px">Push Day</div>
+        <div style="margin-top:12px; height:8px; background:rgba(255,255,255,.28); border-radius:99px; overflow:hidden"><div style="height:100%; width:25%; background:#ffd27a; border-radius:99px; transform-origin:left; animation:grow 1s .15s both ease-out"></div></div>
+        <div style="font:800 10px Nunito; margin-top:5px; opacity:.85">Exercise 1 of 4</div>
+      </div>
+      <div style="padding:14px 22px 0; display:flex; flex-direction:column; gap:13px">
+        <div style="background:#fff; border-radius:20px; padding:16px; box-shadow:0 6px 18px rgba(20,40,70,.06)">
+          <div style="font:900 18px Nunito; color:#16314f">Bench Press</div>
+          <div style="font:700 12px Nunito; color:#8499b0; margin-top:2px">Planned: 10 reps × 4 series</div>
+          <div style="margin-top:13px; display:flex; gap:12px">
+            <div style="flex:1">
+              <div style="font:800 11px Nunito; color:#5e788f; margin-bottom:6px">Actual sets</div>
+              <div style="background:#eef4fa; border:2px solid #e3ecf5; border-radius:12px; padding:11px; text-align:center; font:900 18px Nunito; color:#16314f">4</div>
+            </div>
+            <div style="flex:1">
+              <div style="font:800 11px Nunito; color:#5e788f; margin-bottom:6px">Actual reps</div>
+              <div style="background:#eef4fa; border:2px solid #e3ecf5; border-radius:12px; padding:11px; text-align:center; font:900 18px Nunito; color:#16314f">10</div>
+            </div>
+          </div>
+          <div style="margin-top:11px; background:#fbfdff; border:2px solid #e3ecf5; border-radius:12px; padding:11px; font:700 12px Nunito; color:#9fb0c2; min-height:46px">Notes</div>
+        </div>
+        <div style="background:#fff; border-radius:20px; padding:16px; box-shadow:0 6px 18px rgba(20,40,70,.06)">
+          <div style="font:900 18px Nunito; color:#16314f">Overhead Press</div>
+          <div style="font:700 12px Nunito; color:#8499b0; margin-top:2px">Planned: 8 reps × 3 series</div>
+        </div>
+        <div style="text-align:center; background:#1bb673; border-radius:15px; padding:14px; font:900 15px Nunito; color:#fff; box-shadow:0 10px 20px rgba(27,182,115,.38); transition:transform .15s" style-hover="transform:translateY(-2px)">Complete workout ✓</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ QUICK LOG ============================================================ -->
+<div style="position:absolute; left:566px; top:1020px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">06 · Quick log</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div class="scr" style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="height:30px; display:flex; align-items:center; justify-content:space-between; padding:8px 26px 0; font:800 13px Nunito; color:#16314f"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+      <div style="display:flex; align-items:center; gap:12px; padding:6px 18px 8px">
+        <div style="width:38px; height:38px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(20,40,70,.08)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16314f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></div>
+        <div style="font:900 19px Nunito; color:#16314f">Temporal routine</div>
+      </div>
+      <div style="padding:4px 22px 0">
+        <div style="font:900 12px Nunito; letter-spacing:.14em; color:#f6a124; text-transform:uppercase">Just for today</div>
+        <div style="font:700 13px/1.5 Nunito; color:#5e788f; margin-top:8px">Build a one-off routine for today. It's logged as completed and won't appear in your weekly schedule.</div>
+      </div>
+      <div style="padding:16px 22px 0; display:flex; flex-direction:column; gap:11px">
+        <div>
+          <div style="font:800 12px Nunito; color:#5e788f; margin-bottom:6px">Routine name</div>
+          <div style="background:#fff; border:2px solid #e3ecf5; border-radius:14px; padding:13px 14px; font:800 14px Nunito; color:#16314f">Lunch break burn</div>
+        </div>
+        <div style="font:900 14px Nunito; color:#16314f; margin-top:2px">Exercises</div>
+        <div style="background:#fff; border-radius:18px; padding:14px; box-shadow:0 6px 16px rgba(20,40,70,.06)">
+          <div style="font:900 14px Nunito; color:#16314f">Exercise 1</div>
+          <div style="background:#fbfdff; border:2px solid #e3ecf5; border-radius:12px; padding:11px; margin-top:10px; font:800 14px Nunito; color:#16314f">Kettlebell Swing</div>
+          <div style="display:flex; gap:12px; margin-top:11px">
+            <div style="flex:1"><div style="font:800 11px Nunito; color:#5e788f; margin-bottom:6px">Sets</div><div style="background:#eef4fa; border:2px solid #e3ecf5; border-radius:12px; padding:10px; text-align:center; font:900 17px Nunito; color:#16314f">3</div></div>
+            <div style="flex:1"><div style="font:800 11px Nunito; color:#5e788f; margin-bottom:6px">Reps</div><div style="background:#eef4fa; border:2px solid #e3ecf5; border-radius:12px; padding:10px; text-align:center; font:900 17px Nunito; color:#16314f">15</div></div>
+          </div>
+        </div>
+        <div style="text-align:center; border:2px solid #cfe6fb; border-radius:14px; padding:12px; font:800 14px Nunito; color:#2f9bf0">＋ Add exercise</div>
+        <div style="text-align:center; background:linear-gradient(145deg,#3aa3f4,#2585e0); border-radius:15px; padding:14px; font:900 15px Nunito; color:#fff; box-shadow:0 10px 20px rgba(47,155,240,.38)">Log workout</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ HISTORY ============================================================ -->
+<div style="position:absolute; left:1052px; top:1020px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">07 · History</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div class="scr" style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="height:30px; display:flex; align-items:center; justify-content:space-between; padding:8px 26px 0; font:800 13px Nunito; color:#16314f"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+      <div style="padding:14px 22px 6px">
+        <div style="font:900 12px Nunito; letter-spacing:.14em; color:#2f9bf0; text-transform:uppercase">Completed workouts</div>
+        <div style="font:900 32px/1 Nunito; color:#16314f; margin-top:3px">History</div>
+        <div style="display:flex; gap:6px; background:#dde8f2; border-radius:13px; padding:4px; margin-top:14px">
+          <div style="flex:1; text-align:center; background:#fff; border-radius:10px; padding:8px; font:900 13px Nunito; color:#16314f; box-shadow:0 2px 6px rgba(20,40,70,.08)">Daily</div>
+          <div style="flex:1; text-align:center; border-radius:10px; padding:8px; font:800 13px Nunito; color:#8499b0">Routine</div>
+        </div>
+      </div>
+      <div style="padding:8px 22px 0; display:flex; flex-direction:column; gap:13px">
+        <div style="font:900 14px Nunito; color:#16314f">Mon, 28 Jun 2026</div>
+        <div style="background:#fff; border-radius:20px; padding:16px; box-shadow:0 6px 18px rgba(20,40,70,.06)">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+            <div style="font:900 18px Nunito; color:#16314f">Push Day</div>
+            <div style="display:flex; align-items:center; gap:7px">
+              <span style="background:#eaf5ff; color:#2585e0; font:800 11px Nunito; padding:5px 9px; border-radius:99px">7:30 AM</span>
+              <span style="background:#fff1f2; color:#e0556b; font:800 11px Nunito; padding:5px 9px; border-radius:9px; border:1px solid #fbd5da">Delete</span>
+            </div>
+          </div>
+          <div style="margin-top:10px; display:flex; flex-direction:column; gap:5px; font:700 13px Nunito; color:#415870">
+            <span>Bench Press — 10 reps × 4 series</span>
+            <span>Overhead Press — 8 reps × 3 series <span style="color:#aebccd; font-weight:600">(planned 8 × 3)</span></span>
+            <span>Incline Dumbbell — 12 reps × 3 series</span>
+          </div>
+        </div>
+        <div style="font:900 14px Nunito; color:#16314f; margin-top:2px">Sat, 26 Jun 2026</div>
+        <div style="background:#fff; border-radius:20px; padding:16px; box-shadow:0 6px 18px rgba(20,40,70,.06)">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+            <div style="font:900 18px Nunito; color:#16314f">Leg Day</div>
+            <div style="display:flex; align-items:center; gap:7px">
+              <span style="background:#eaf5ff; color:#2585e0; font:800 11px Nunito; padding:5px 9px; border-radius:99px">6:05 PM</span>
+              <span style="background:#fff1f2; color:#e0556b; font:800 11px Nunito; padding:5px 9px; border-radius:9px; border:1px solid #fbd5da">Delete</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- TABBAR history -->
+      <div style="position:absolute; left:0; right:0; bottom:0; height:80px; background:#fff; border-top:1px solid #e3ecf5; display:flex; padding:11px 14px 22px">
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Today</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 9v6M3.5 10.5v3M17.5 9v6M20.5 10.5v3M6.5 12h11"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Routines</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f9bf0" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span style="font:800 9.5px Nunito; color:#2f9bf0">History</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Profile</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ PROFILE ============================================================ -->
+<div style="position:absolute; left:1538px; top:1020px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">08 · Profile</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div class="scr" style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <div style="height:30px; display:flex; align-items:center; justify-content:space-between; padding:8px 26px 0; font:800 13px Nunito; color:#16314f"><span>9:41</span><span style="letter-spacing:2px">● ● ●</span></div>
+      <div style="padding:14px 22px 6px">
+        <div style="font:900 12px Nunito; letter-spacing:.14em; color:#2f9bf0; text-transform:uppercase">Account</div>
+        <div style="font:900 32px/1 Nunito; color:#16314f; margin-top:3px">Profile</div>
+      </div>
+      <div style="padding:18px 22px 0; display:flex; flex-direction:column; align-items:center; text-align:center">
+        <img src="assets/dragon-blue.png" alt="" style="width:108px; height:108px; border-radius:28px; box-shadow:0 14px 30px rgba(47,155,240,.32); animation:bob 3.4s ease-in-out infinite">
+        <div style="font:900 20px Nunito; color:#16314f; margin-top:14px">Level 7 Athlete</div>
+        <div style="display:flex; gap:9px; margin-top:14px; width:100%">
+          <div style="flex:1; background:#fff; border-radius:16px; padding:13px; box-shadow:0 4px 12px rgba(20,40,70,.06)"><div style="font:900 21px Nunito; color:#f6a124">5</div><div style="font:800 9px Nunito; color:#8499b0; letter-spacing:.05em; text-transform:uppercase">Streak</div></div>
+          <div style="flex:1; background:#fff; border-radius:16px; padding:13px; box-shadow:0 4px 12px rgba(20,40,70,.06)"><div style="font:900 21px Nunito; color:#2f9bf0">142</div><div style="font:800 9px Nunito; color:#8499b0; letter-spacing:.05em; text-transform:uppercase">Workouts</div></div>
+          <div style="flex:1; background:#fff; border-radius:16px; padding:13px; box-shadow:0 4px 12px rgba(20,40,70,.06)"><div style="font:900 21px Nunito; color:#1bb673">3.2k</div><div style="font:800 9px Nunito; color:#8499b0; letter-spacing:.05em; text-transform:uppercase">Total XP</div></div>
+        </div>
+      </div>
+      <div style="padding:18px 22px 0">
+        <div style="background:#fff; border-radius:18px; padding:16px; box-shadow:0 6px 16px rgba(20,40,70,.06)">
+          <div style="font:800 12px Nunito; color:#8499b0">Signed in as</div>
+          <div style="font:900 17px Nunito; color:#16314f; margin-top:3px">alex.rivera@email.com</div>
+        </div>
+        <div style="text-align:center; background:#fff1f2; border:2px solid #fbd5da; border-radius:15px; padding:14px; font:900 15px Nunito; color:#e0556b; margin-top:14px; transition:transform .15s" style-hover="transform:translateY(-2px)">Log out</div>
+      </div>
+      <!-- TABBAR profile -->
+      <div style="position:absolute; left:0; right:0; bottom:0; height:80px; background:#fff; border-top:1px solid #e3ecf5; display:flex; padding:11px 14px 22px">
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Today</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 9v6M3.5 10.5v3M17.5 9v6M20.5 10.5v3M6.5 12h11"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">Routines</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9fb0c2" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span style="font:800 9.5px Nunito; color:#9fb0c2">History</span></div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:3px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f9bf0" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/></svg><span style="font:800 9.5px Nunito; color:#2f9bf0">Profile</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ ADD SHEET (Today modal) ============================================================ -->
+<div style="position:absolute; left:2024px; top:140px; width:380px">
+  <div data-drags-parent="1" style="position:absolute; top:-30px; font:800 13px Nunito,system-ui; color:#16314f">02b · Add to today (sheet)</div>
+  <div style="background:#16243a; border-radius:46px; padding:13px; box-shadow:0 24px 60px rgba(20,40,70,.22)">
+    <div style="background:#eef4fa; border-radius:34px; height:740px; overflow:hidden; position:relative; font-family:Nunito,system-ui">
+      <!-- dimmed today behind -->
+      <div style="position:absolute; inset:0; background:linear-gradient(160deg,#3aa3f4,#2585e0); opacity:.18"></div>
+      <div style="position:absolute; inset:0; background:rgba(15,32,55,.5)"></div>
+      <div style="position:absolute; left:0; right:0; bottom:0; background:#fff; border-radius:26px 26px 34px 34px; padding:22px 22px 30px">
+        <div style="width:42px; height:5px; border-radius:99px; background:#dde6ef; margin:0 auto 16px"></div>
+        <div style="font:900 19px Nunito; color:#16314f; margin-bottom:14px">Add to today</div>
+        <div style="display:flex; align-items:center; gap:14px; background:#eef4fa; border:2px solid #e3ecf5; border-radius:16px; padding:15px; margin-bottom:11px">
+          <div style="width:46px; height:46px; border-radius:14px; background:#eaf5ff; display:flex; align-items:center; justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2f9bf0" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 9v6M3.5 10.5v3M17.5 9v6M20.5 10.5v3M6.5 12h11"/></svg></div>
+          <div style="flex:1"><div style="font:900 15px Nunito; color:#16314f">Temporal routine</div><div style="font:700 12px Nunito; color:#8499b0; margin-top:2px">A one-off routine logged just for today</div></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px; background:#eef4fa; border:2px solid #e3ecf5; border-radius:16px; padding:15px">
+          <div style="width:46px; height:46px; border-radius:14px; background:#fff3e3; display:flex; align-items:center; justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f6a124" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3-2 4-2 7a2 2 0 0 0 4 0c0-1 0-1 1-2 2 2 3 4 3 7a6 6 0 0 1-12 0c0-4 3-6 6-12z"/></svg></div>
+          <div style="flex:1"><div style="font:900 15px Nunito; color:#16314f">Exercise to failure</div><div style="font:700 12px Nunito; color:#8499b0; margin-top:2px">Log a single exercise taken to failure</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- note -->
+<div style="position:absolute; left:80px; top:1900px; width:620px; background:#fff7d6; padding:16px 18px; border-radius:4px; box-shadow:0 2px 10px rgba(20,40,70,.1); font:600 13px/1.55 Nunito,system-ui; color:#5a4a1a; transform:rotate(-.5deg)">
+  All 8 screens in the <b>Bold Gamified</b> direction — same content and structure as your app (Auth, Today, Routines, Routine editor, Workout, Quick log, History, Profile + the Today add-sheet). Sample text (routine names, emails, dates) is placeholder; the live app fills real data. Hover the CTAs for the lift/transition; progress bars and stat chips animate in.
+</div>
+
+</x-dc>
+</body>
+</html>

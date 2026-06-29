@@ -3,9 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/AppButton';
-import { PositiveIntegerInput } from '../components/PositiveIntegerInput';
 import { Screen } from '../components/Screen';
-import { colors, radius, shadows } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { getLocalDateString } from '../lib/date';
 import { notify } from '../lib/notify';
@@ -21,6 +19,11 @@ type DraftExercise = {
   sets: number;
   reps: number;
 };
+
+function parsePositiveInt(value: string) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
+}
 
 function toLog(exercise: DraftExercise, notes: string): WorkoutExerciseLogInput {
   return {
@@ -119,7 +122,7 @@ export function QuickLogScreen({ navigation, route }: Props) {
           <TextInput
             onChangeText={setTitle}
             placeholder="Temporal routine"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor="#94a3b8"
             style={styles.input}
             value={title}
           />
@@ -134,25 +137,27 @@ export function QuickLogScreen({ navigation, route }: Props) {
           <TextInput
             onChangeText={(value) => updateExercise(index, { ...exercise, name: value })}
             placeholder="Exercise name"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor="#94a3b8"
             style={styles.input}
             value={exercise.name}
           />
           <View style={styles.numberRow}>
             <View style={styles.numberField}>
               <Text style={styles.label}>Sets</Text>
-              <PositiveIntegerInput
-                onChangeValue={(value) => updateExercise(index, { ...exercise, sets: value })}
+              <TextInput
+                keyboardType="number-pad"
+                onChangeText={(value) => updateExercise(index, { ...exercise, sets: parsePositiveInt(value) })}
                 style={[styles.input, styles.numberInput]}
-                value={exercise.sets}
+                value={String(exercise.sets)}
               />
             </View>
             <View style={styles.numberField}>
               <Text style={styles.label}>{isFailure ? 'Reps reached' : 'Reps'}</Text>
-              <PositiveIntegerInput
-                onChangeValue={(value) => updateExercise(index, { ...exercise, reps: value })}
+              <TextInput
+                keyboardType="number-pad"
+                onChangeText={(value) => updateExercise(index, { ...exercise, reps: parsePositiveInt(value) })}
                 style={[styles.input, styles.numberInput]}
-                value={exercise.reps}
+                value={String(exercise.reps)}
               />
             </View>
           </View>
@@ -173,7 +178,7 @@ export function QuickLogScreen({ navigation, route }: Props) {
             multiline
             onChangeText={setFailureNotes}
             placeholder="How it felt, weight used, etc."
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor="#94a3b8"
             style={[styles.input, styles.notesInput]}
             value={failureNotes}
           />
@@ -193,40 +198,39 @@ export function QuickLogScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    ...shadows.card,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
     gap: 12,
-    padding: 16,
+    padding: 14,
   },
   cardTitle: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 17,
     fontWeight: '900',
   },
   eyebrow: {
-    color: colors.amber,
-    fontSize: 12,
+    color: '#0f766e',
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   field: {
     gap: 6,
   },
   input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    color: colors.navy,
+    backgroundColor: '#ffffff',
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '700',
-    minHeight: 50,
+    minHeight: 48,
     paddingHorizontal: 14,
   },
   label: {
-    color: colors.textMuted,
+    color: '#475569',
     fontSize: 13,
     fontWeight: '800',
     marginBottom: 6,
@@ -249,19 +253,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionTitle: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 20,
     fontWeight: '900',
   },
   subtitle: {
-    color: colors.textMuted,
+    color: '#64748b',
     fontSize: 15,
-    fontWeight: '600',
     lineHeight: 21,
     marginTop: 8,
   },
   title: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 30,
     fontWeight: '900',
   },

@@ -2,6 +2,9 @@ import { supabase } from './supabase';
 import { getFirstSetGroup, getTotalSets, normalizeSetGroups } from './exercisePlan';
 import {
   EditableExercise,
+  ExerciseProgressEntry,
+  ExerciseProgressSummary,
+  ExerciseProgressTrend,
   Routine,
   RoutineExercise,
   RoutineSchedule,
@@ -308,6 +311,15 @@ type WorkoutHistoryRow = WorkoutSession & {
   workout_exercise_logs: WorkoutExerciseLog[] | null;
 };
 
+type ExerciseProgressRow = WorkoutExerciseLog & {
+  workout_sessions: (Pick<
+    WorkoutSession,
+    'id' | 'routine_id' | 'title' | 'scheduled_date' | 'completed_at' | 'status' | 'user_id'
+  > & {
+    routines: { name: string } | null;
+  }) | null;
+};
+
 function mapWorkoutHistoryRows(rows: WorkoutHistoryRow[]): WorkoutHistorySession[] {
   return rows.map((session) => ({
     ...session,
@@ -339,6 +351,138 @@ export async function fetchWorkoutHistory(userId: string): Promise<WorkoutHistor
   return mapWorkoutHistoryRows((data ?? []) as WorkoutHistoryRow[]);
 }
 
+function normalizeExerciseName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function getWorkoutNameForProgress(session: ExerciseProgressRow['workout_sessions']) {
+  return session?.routines?.name ?? session?.title ?? 'Deleted routine';
+}
+
+function getProgressTotals(setGroups: Array<{ reps: number; sets: number }>) {
+  return setGroups.reduce(
+    (totals, group) => ({
+      totalSets: totals.totalSets + group.sets,
+      totalReps: totals.totalReps + group.sets * group.reps,
+    }),
+    { totalSets: 0, totalReps: 0 },
+  );
+}
+
+function sortProgressEntries(entries: ExerciseProgressEntry[]) {
+  return [...entries].sort((a, b) => {
+    const dateDiff = b.scheduledDate.localeCompare(a.scheduledDate);
+
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+
+    const aCompleted = a.completedAt ?? '';
+    const bCompleted = b.completedAt ?? '';
+    return bCompleted.localeCompare(aCompleted);
+  });
+}
+
+function getTrend(entries: ExerciseProgressEntry[]): ExerciseProgressTrend {
+  if (entries.length < 2) {
+    return 'flat';
+  }
+
+  const [latest, previous] = entries;
+
+  if (latest.totalReps > previous.totalReps) {
+    return 'up';
+  }
+
+  if (latest.totalReps < previous.totalReps) {
+    return 'down';
+  }
+
+  return 'flat';
+}
+
+function mapExerciseProgressRows(rows: ExerciseProgressRow[]): ExerciseProgressSummary[] {
+  const groups = new Map<string, { exerciseName: string; entries: ExerciseProgressEntry[] }>();
+
+  rows.forEach((row) => {
+    const key = normalizeExerciseName(row.name);
+    const session = row.workout_sessions;
+
+    if (!key || !session) {
+      return;
+    }
+
+    const actualSetGroups = normalizeSetGroups(row.actual_set_groups, {
+      reps: row.actual_reps,
+      sets: row.actual_sets,
+    });
+    const totals = getProgressTotals(actualSetGroups);
+    const current = groups.get(key) ?? { exerciseName: row.name.trim(), entries: [] };
+
+    groups.set(key, {
+      exerciseName: current.exerciseName,
+      entries: [
+        ...current.entries,
+        {
+          id: row.id,
+          exerciseName: row.name.trim(),
+          scheduledDate: session.scheduled_date,
+          completedAt: session.completed_at,
+          sessionId: session.id,
+          workoutName: getWorkoutNameForProgress(session),
+          actualSetGroups,
+          totalSets: totals.totalSets,
+          totalReps: totals.totalReps,
+        },
+      ],
+    });
+  });
+
+  return Array.from(groups.values())
+    .map((group) => {
+      const entries = sortProgressEntries(group.entries);
+      const bestTotalReps = Math.max(...entries.map((entry) => entry.totalReps));
+
+      return {
+        exerciseName: entries[0]?.exerciseName ?? group.exerciseName,
+        entries,
+        entryCount: entries.length,
+        lastTotalReps: entries[0]?.totalReps ?? 0,
+        bestTotalReps: Number.isFinite(bestTotalReps) ? bestTotalReps : 0,
+        trend: getTrend(entries),
+      };
+    })
+    .sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
+}
+
+export async function fetchExerciseProgress(userId: string): Promise<ExerciseProgressSummary[]> {
+  const { data, error } = await supabase
+    .from('workout_exercise_logs')
+    .select(
+      `
+        *,
+        workout_sessions!inner(
+          id,
+          routine_id,
+          title,
+          scheduled_date,
+          completed_at,
+          status,
+          user_id,
+          routines(name)
+        )
+      `,
+    )
+    .eq('workout_sessions.user_id', userId)
+    .eq('workout_sessions.status', 'completed');
+
+  if (error) {
+    raise(error);
+  }
+
+  return mapExerciseProgressRows((data ?? []) as ExerciseProgressRow[]);
+}
+
 export async function fetchCompletedWorkoutsForDate(
   userId: string,
   scheduledDate: string,
@@ -365,32 +509,56 @@ export async function fetchCompletedWorkoutsForDate(
   return mapWorkoutHistoryRows((data ?? []) as WorkoutHistoryRow[]);
 }
 
-function buildWorkoutLogRows(sessionId: string, logs: WorkoutExerciseLogInput[]) {
-  return logs.map((log) => {
-    const plannedSetGroups = normalizeSetGroups(log.plannedSetGroups, {
-      reps: log.plannedReps,
-      sets: log.plannedSets,
-    });
-    const actualSetGroups = normalizeSetGroups(log.actualSetGroups, {
-      reps: log.actualReps,
-      sets: log.actualSets,
-    });
-    const plannedFirstGroup = getFirstSetGroup(plannedSetGroups);
-    const actualFirstGroup = getFirstSetGroup(actualSetGroups);
+export async function fetchWorkoutSessionById(userId: string, sessionId: string): Promise<WorkoutHistorySession> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select(
+      `
+        *,
+        routines(name),
+        workout_exercise_logs(*)
+      `,
+    )
+    .eq('user_id', userId)
+    .eq('id', sessionId)
+    .eq('status', 'completed')
+    .single();
 
-    return {
-      workout_session_id: sessionId,
-      routine_exercise_id: log.routineExerciseId,
-      name: log.name,
-      planned_reps: plannedFirstGroup.reps,
-      planned_sets: getTotalSets(plannedSetGroups),
-      planned_set_groups: plannedSetGroups,
-      actual_reps: actualFirstGroup.reps,
-      actual_sets: getTotalSets(actualSetGroups),
-      actual_set_groups: actualSetGroups,
-      notes: log.notes.trim() || null,
-    };
+  if (error) {
+    raise(error);
+  }
+
+  return mapWorkoutHistoryRows([data as WorkoutHistoryRow])[0];
+}
+
+function buildWorkoutLogRow(sessionId: string, log: WorkoutExerciseLogInput) {
+  const plannedSetGroups = normalizeSetGroups(log.plannedSetGroups, {
+    reps: log.plannedReps,
+    sets: log.plannedSets,
   });
+  const actualSetGroups = normalizeSetGroups(log.actualSetGroups, {
+    reps: log.actualReps,
+    sets: log.actualSets,
+  });
+  const plannedFirstGroup = getFirstSetGroup(plannedSetGroups);
+  const actualFirstGroup = getFirstSetGroup(actualSetGroups);
+
+  return {
+    workout_session_id: sessionId,
+    routine_exercise_id: log.routineExerciseId,
+    name: log.name.trim(),
+    planned_reps: plannedFirstGroup.reps,
+    planned_sets: getTotalSets(plannedSetGroups),
+    planned_set_groups: plannedSetGroups,
+    actual_reps: actualFirstGroup.reps,
+    actual_sets: getTotalSets(actualSetGroups),
+    actual_set_groups: actualSetGroups,
+    notes: log.notes.trim() || null,
+  };
+}
+
+function buildWorkoutLogRows(sessionId: string, logs: WorkoutExerciseLogInput[]) {
+  return logs.map((log) => buildWorkoutLogRow(sessionId, log));
 }
 
 export async function completeWorkout(params: {
@@ -474,4 +642,44 @@ export async function logAdHocWorkout(params: {
   }
 
   return session;
+}
+
+export async function updateWorkoutSessionLogs(params: {
+  sessionId: string;
+  title: string | null;
+  logs: Array<WorkoutExerciseLogInput & { logId: string }>;
+}) {
+  const title = params.title?.trim() || null;
+
+  if (params.logs.length === 0) {
+    throw new Error('Add at least one exercise');
+  }
+
+  const invalidLog = params.logs.find((log) => !log.name.trim());
+  if (invalidLog) {
+    throw new Error('Every exercise needs a name');
+  }
+
+  const { error: sessionError } = await supabase
+    .from('workout_sessions')
+    .update({ title })
+    .eq('id', params.sessionId);
+
+  if (sessionError) {
+    raise(sessionError);
+  }
+
+  await Promise.all(
+    params.logs.map(async (log) => {
+      const { error } = await supabase
+        .from('workout_exercise_logs')
+        .update(buildWorkoutLogRow(params.sessionId, log))
+        .eq('id', log.logId)
+        .eq('workout_session_id', params.sessionId);
+
+      if (error) {
+        raise(error);
+      }
+    }),
+  );
 }

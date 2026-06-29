@@ -1,20 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyState } from '../components/EmptyState';
-import { colors, radius, shadows } from '../theme';
 import { confirm } from '../lib/confirm';
 import { useAuth } from '../contexts/AuthContext';
 import { formatSetGroups, normalizeSetGroups } from '../lib/exercisePlan';
-import { deleteWorkoutSession, fetchExerciseProgress, fetchWorkoutHistory } from '../lib/routines';
-import { ExerciseProgressSummary, ExerciseProgressTrend, WorkoutHistorySession } from '../lib/types';
-import { RootStackParamList } from '../navigation/types';
+import { deleteWorkoutSession, fetchWorkoutHistory } from '../lib/routines';
+import { WorkoutHistorySession } from '../lib/types';
 
-type HistoryView = 'daily' | 'routine' | 'exercise';
-type Navigation = NativeStackNavigationProp<RootStackParamList>;
+type HistoryView = 'daily' | 'routine';
 
 type DailyGroup = {
   date: string;
@@ -49,30 +45,6 @@ function formatCompletedTime(value: string | null) {
 
 function getRoutineName(session: WorkoutHistorySession) {
   return session.routine_name ?? session.title ?? 'Deleted routine';
-}
-
-function getTrendLabel(trend: ExerciseProgressTrend) {
-  if (trend === 'up') {
-    return 'Improving';
-  }
-
-  if (trend === 'down') {
-    return 'Lower';
-  }
-
-  return 'Stable';
-}
-
-function getTrendStyle(trend: ExerciseProgressTrend) {
-  if (trend === 'up') {
-    return styles.trendUp;
-  }
-
-  if (trend === 'down') {
-    return styles.trendDown;
-  }
-
-  return styles.trendFlat;
 }
 
 function groupByDay(sessions: WorkoutHistorySession[]): DailyGroup[] {
@@ -164,51 +136,10 @@ function SessionCard({
   );
 }
 
-function ExerciseCard({
-  onPress,
-  summary,
-}: {
-  onPress: (summary: ExerciseProgressSummary) => void;
-  summary: ExerciseProgressSummary;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => onPress(summary)}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.exerciseSummaryTitle}>
-          <Text style={styles.cardTitle}>{summary.exerciseName}</Text>
-          <Text style={styles.sectionMeta}>
-            {summary.entryCount} {summary.entryCount === 1 ? 'record' : 'records'}
-          </Text>
-        </View>
-        <Text style={[styles.trendPill, getTrendStyle(summary.trend)]}>{getTrendLabel(summary.trend)}</Text>
-      </View>
-
-      <View style={styles.metricRow}>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Last volume</Text>
-          <Text style={styles.metricValue}>{summary.lastTotalReps}</Text>
-          <Text style={styles.metricMeta}>total reps</Text>
-        </View>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Best volume</Text>
-          <Text style={styles.metricValue}>{summary.bestTotalReps}</Text>
-          <Text style={styles.metricMeta}>total reps</Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
 export function HistoryScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<Navigation>();
   const [history, setHistory] = useState<WorkoutHistorySession[]>([]);
-  const [exerciseProgress, setExerciseProgress] = useState<ExerciseProgressSummary[]>([]);
   const [view, setView] = useState<HistoryView>('daily');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -223,12 +154,7 @@ export function HistoryScreen() {
     }
 
     try {
-      const [workoutHistory, progress] = await Promise.all([
-        fetchWorkoutHistory(user.id),
-        fetchExerciseProgress(user.id),
-      ]);
-      setHistory(workoutHistory);
-      setExerciseProgress(progress);
+      setHistory(await fetchWorkoutHistory(user.id));
     } catch (error) {
       Alert.alert('Could not load history', error instanceof Error ? error.message : 'Please try again.');
     } finally {
@@ -243,6 +169,10 @@ export function HistoryScreen() {
       load();
     }, [load]),
   );
+
+  function removeSessionFromHistory(sessionId: string) {
+    setHistory((current) => current.filter((session) => session.id !== sessionId));
+  }
 
   async function confirmDeleteSession(session: WorkoutHistorySession) {
     const sessionName = getRoutineName(session);
@@ -262,16 +192,12 @@ export function HistoryScreen() {
     try {
       setDeletingSessionId(session.id);
       await deleteWorkoutSession(session.id);
-      await load();
+      removeSessionFromHistory(session.id);
     } catch (error) {
       Alert.alert('Could not delete completed routine', error instanceof Error ? error.message : 'Please try again.');
     } finally {
       setDeletingSessionId(null);
     }
-  }
-
-  function openExerciseProgress(summary: ExerciseProgressSummary) {
-    navigation.navigate('ExerciseProgress', { exerciseName: summary.exerciseName });
   }
 
   return (
@@ -303,19 +229,12 @@ export function HistoryScreen() {
           >
             <Text style={[styles.segmentLabel, view === 'routine' && styles.segmentLabelActive]}>Routine</Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setView('exercise')}
-            style={[styles.segmentButton, view === 'exercise' && styles.segmentButtonActive]}
-          >
-            <Text style={[styles.segmentLabel, view === 'exercise' && styles.segmentLabelActive]}>Exercises</Text>
-          </Pressable>
         </View>
       </View>
 
-      {loading ? <ActivityIndicator color={colors.primary} size="large" /> : null}
+      {loading ? <ActivityIndicator color="#0f766e" size="large" /> : null}
 
-      {!loading && history.length === 0 && exerciseProgress.length === 0 ? (
+      {!loading && history.length === 0 ? (
         <EmptyState title="No workout history yet" message="Complete a routine and the details will appear here." />
       ) : null}
 
@@ -359,27 +278,18 @@ export function HistoryScreen() {
             </View>
           ))
         : null}
-
-      {!loading && view === 'exercise' && exerciseProgress.length === 0 && history.length > 0 ? (
-        <EmptyState title="No exercise progress yet" message="Completed workouts with exercises will appear here." />
-      ) : null}
-
-      {!loading && view === 'exercise'
-        ? exerciseProgress.map((summary) => (
-            <ExerciseCard key={summary.exerciseName} onPress={openExerciseProgress} summary={summary} />
-          ))
-        : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    ...shadows.card,
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
     gap: 10,
-    padding: 18,
+    padding: 16,
   },
   cardHeader: {
     alignItems: 'flex-start',
@@ -388,14 +298,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTitle: {
-    color: colors.navy,
+    color: '#0f172a',
     flex: 1,
     fontSize: 20,
     fontWeight: '900',
-  },
-  cardPressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.99 }],
   },
   cardActions: {
     alignItems: 'center',
@@ -403,7 +309,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   container: {
-    backgroundColor: colors.appBg,
+    backgroundColor: '#f8fafc',
   },
   content: {
     gap: 16,
@@ -411,22 +317,17 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   exercise: {
-    color: colors.body,
+    color: '#334155',
     fontSize: 15,
-    fontWeight: '600',
     lineHeight: 22,
   },
   exerciseList: {
     gap: 6,
   },
-  exerciseSummaryTitle: {
-    flex: 1,
-  },
   eyebrow: {
-    color: colors.primaryDark,
-    fontSize: 12,
+    color: '#0f766e',
+    fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   header: {
@@ -436,71 +337,38 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   notes: {
-    color: colors.textMuted,
+    color: '#475569',
     fontSize: 14,
     fontStyle: 'italic',
     lineHeight: 20,
   },
   planned: {
-    color: colors.textFaint,
+    color: '#94a3b8',
     fontWeight: '600',
   },
-  metricBlock: {
-    backgroundColor: colors.mutedBg,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    flex: 1,
-    minWidth: 120,
-    padding: 12,
-  },
-  metricLabel: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  metricMeta: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  metricRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  metricValue: {
-    color: colors.navy,
-    fontSize: 24,
-    fontWeight: '900',
-    marginTop: 4,
-  },
   timePill: {
-    backgroundColor: colors.chipBlueBg,
-    borderRadius: radius.pill,
-    color: colors.chipBlueText,
+    backgroundColor: '#e0f2fe',
+    borderRadius: 999,
+    color: '#075985',
     fontSize: 12,
-    fontWeight: '900',
-    overflow: 'hidden',
-    paddingHorizontal: 11,
+    fontWeight: '800',
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
   deleteSessionButton: {
     alignItems: 'center',
-    backgroundColor: colors.dangerBg,
-    borderColor: colors.dangerBorder,
-    borderRadius: radius.sm,
+    backgroundColor: '#fff1f2',
+    borderColor: '#fecdd3',
+    borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 34,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
   },
   deleteSessionLabel: {
-    color: colors.dangerText,
+    color: '#be123c',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   deleteButtonPressed: {
     opacity: 0.72,
@@ -509,64 +377,43 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionMeta: {
-    color: colors.textMuted,
+    color: '#64748b',
     fontSize: 14,
     fontWeight: '700',
     marginTop: 2,
   },
   sectionTitle: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 20,
     fontWeight: '900',
   },
   segmentButton: {
     alignItems: 'center',
-    borderRadius: radius.pill,
+    borderRadius: 8,
     flex: 1,
     justifyContent: 'center',
     minHeight: 40,
   },
   segmentButtonActive: {
-    backgroundColor: colors.navy,
+    backgroundColor: '#0f766e',
   },
   segmentGroup: {
-    ...shadows.soft,
-    backgroundColor: colors.surface,
-    borderRadius: radius.pill,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 10,
     flexDirection: 'row',
-    padding: 4,
+    padding: 3,
   },
   segmentLabel: {
-    color: colors.textSubtle,
+    color: '#475569',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   segmentLabelActive: {
-    color: colors.white,
+    color: '#ffffff',
   },
   title: {
-    color: colors.navy,
+    color: '#0f172a',
     fontSize: 34,
     fontWeight: '900',
-  },
-  trendDown: {
-    backgroundColor: colors.dangerBg,
-    color: colors.dangerText,
-  },
-  trendFlat: {
-    backgroundColor: colors.border,
-    color: colors.textMuted,
-  },
-  trendPill: {
-    borderRadius: radius.pill,
-    fontSize: 12,
-    fontWeight: '900',
-    overflow: 'hidden',
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-  },
-  trendUp: {
-    backgroundColor: colors.greenSoftBg,
-    color: colors.greenText,
   },
 });

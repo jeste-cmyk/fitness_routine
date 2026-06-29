@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppButton } from '../components/AppButton';
 import { EmptyState } from '../components/EmptyState';
+import { HeroHeader } from '../components/HeroHeader';
+import { colors, radius, shadows } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { getLocalDateString, getTodayWeekday } from '../lib/date';
 import { notify } from '../lib/notify';
@@ -236,30 +238,26 @@ export function TodayScreen() {
         }} />}
         style={styles.container}
       >
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.eyebrow}>{todayLabel}</Text>
-          <Text style={styles.title}>Today</Text>
-        </View>
-        <View style={styles.filterGroup}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setFilter('pending')}
-            style={[styles.filterButton, filter === 'pending' && styles.filterButtonActive]}
-          >
-            <Text style={[styles.filterLabel, filter === 'pending' && styles.filterLabelActive]}>Pending</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setFilter('completed')}
-            style={[styles.filterButton, filter === 'completed' && styles.filterButtonActive]}
-          >
-            <Text style={[styles.filterLabel, filter === 'completed' && styles.filterLabelActive]}>Completed</Text>
-          </Pressable>
-        </View>
+      <HeroHeader eyebrow={todayLabel} title="Today" image={require('../../assets/dragon.png')} />
+
+      <View style={styles.filterGroup}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setFilter('pending')}
+          style={[styles.filterButton, filter === 'pending' && styles.filterButtonActive]}
+        >
+          <Text style={[styles.filterLabel, filter === 'pending' && styles.filterLabelActive]}>Pending</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setFilter('completed')}
+          style={[styles.filterButton, filter === 'completed' && styles.filterButtonActive]}
+        >
+          <Text style={[styles.filterLabel, filter === 'completed' && styles.filterLabelActive]}>Completed</Text>
+        </Pressable>
       </View>
 
-      {loading ? <ActivityIndicator color="#0f766e" size="large" /> : null}
+      {loading ? <ActivityIndicator color={colors.primary} size="large" /> : null}
 
       {!loading && filter === 'pending' && pendingRoutines.length === 0 ? (
         <EmptyState title={emptyState.title} message={emptyState.message} />
@@ -285,6 +283,7 @@ export function TodayScreen() {
           deleting={deletingSessionId === session.id}
           key={session.id}
           onDelete={deleteCompletedSession}
+          onEdit={() => navigation.navigate('Workout', { sessionId: session.id })}
           session={session}
         />
       )) : null}
@@ -308,7 +307,7 @@ export function TodayScreen() {
               onPress={() => openQuickLog('routine')}
               style={({ pressed }) => [styles.sheetOption, pressed && styles.sheetOptionPressed]}
             >
-              <Ionicons name="barbell-outline" color="#0f766e" size={24} />
+              <Ionicons name="barbell-outline" color={colors.primary} size={24} />
               <View style={styles.sheetOptionText}>
                 <Text style={styles.sheetOptionTitle}>Temporal routine</Text>
                 <Text style={styles.sheetOptionSubtitle}>A one-off routine logged just for today</Text>
@@ -319,7 +318,7 @@ export function TodayScreen() {
               onPress={() => openQuickLog('failure')}
               style={({ pressed }) => [styles.sheetOption, pressed && styles.sheetOptionPressed]}
             >
-              <Ionicons name="flame-outline" color="#0f766e" size={24} />
+              <Ionicons name="flame-outline" color={colors.amber} size={24} />
               <View style={styles.sheetOptionText}>
                 <Text style={styles.sheetOptionTitle}>Exercise to failure</Text>
                 <Text style={styles.sheetOptionSubtitle}>Log a single exercise taken to failure</Text>
@@ -414,10 +413,12 @@ function RoutineCard({ routine, filter, onModify, onComplete, onCompleted }: Rou
 function CompletedWorkoutCard({
   deleting,
   onDelete,
+  onEdit,
   session,
 }: {
   deleting: boolean;
   onDelete: (session: WorkoutHistorySession) => void | Promise<void>;
+  onEdit: () => void;
   session: WorkoutHistorySession;
 }) {
   return (
@@ -448,6 +449,12 @@ function CompletedWorkoutCard({
 
       <View style={styles.actions}>
         <AppButton
+          disabled={deleting}
+          label="Edit log"
+          onPress={onEdit}
+          variant="secondary"
+        />
+        <AppButton
           label={session.routine_id ? 'Mark routine as incomplete' : 'Delete log'}
           loading={deleting}
           onPress={() => onDelete(session)}
@@ -463,47 +470,44 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   backdrop: {
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: 'rgba(15, 32, 55, 0.5)',
     flex: 1,
     justifyContent: 'flex-end',
   },
   fab: {
+    ...shadows.fab,
     alignItems: 'center',
-    backgroundColor: '#0f766e',
-    borderRadius: 28,
+    backgroundColor: colors.amber,
+    borderRadius: radius.xl,
     bottom: 24,
-    elevation: 6,
-    height: 56,
+    height: 60,
     justifyContent: 'center',
     position: 'absolute',
     right: 20,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    width: 56,
+    width: 60,
   },
   fabPressed: {
-    opacity: 0.85,
+    opacity: 0.9,
+    transform: [{ scale: 0.96 }],
   },
   root: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.appBg,
     flex: 1,
   },
   sheet: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
     gap: 12,
-    padding: 20,
-    paddingBottom: 32,
+    padding: 22,
+    paddingBottom: 34,
   },
   sheetOption: {
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: colors.mutedBg,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderWidth: 2,
     flexDirection: 'row',
     gap: 14,
     padding: 16,
@@ -512,8 +516,9 @@ const styles = StyleSheet.create({
     opacity: 0.72,
   },
   sheetOptionSubtitle: {
-    color: '#64748b',
+    color: colors.textSubtle,
     fontSize: 13,
+    fontWeight: '600',
     lineHeight: 18,
   },
   sheetOptionText: {
@@ -521,32 +526,34 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   sheetOptionTitle: {
-    color: '#0f172a',
+    color: colors.navy,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   sheetTitle: {
-    color: '#0f172a',
-    fontSize: 18,
+    color: colors.navy,
+    fontSize: 19,
     fontWeight: '900',
     marginBottom: 4,
   },
   badge: {
-    backgroundColor: '#fef3c7',
-    borderRadius: 999,
-    color: '#92400e',
+    backgroundColor: colors.amberSoftBg,
+    borderRadius: radius.pill,
+    color: colors.amberText,
     fontSize: 12,
-    fontWeight: '800',
-    paddingHorizontal: 10,
+    fontWeight: '900',
+    overflow: 'hidden',
+    paddingHorizontal: 11,
     paddingVertical: 6,
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    borderWidth: 1,
+    ...shadows.card,
+    backgroundColor: colors.surface,
+    borderLeftColor: colors.primary,
+    borderLeftWidth: 5,
+    borderRadius: radius.xl,
     gap: 16,
-    padding: 16,
+    padding: 18,
   },
   cardHeader: {
     alignItems: 'flex-start',
@@ -555,7 +562,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTitle: {
-    color: '#0f172a',
+    color: colors.navy,
     fontSize: 20,
     fontWeight: '900',
   },
@@ -564,7 +571,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   container: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.appBg,
     flex: 1,
   },
   content: {
@@ -573,23 +580,26 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
   },
   eyebrow: {
-    color: '#0f766e',
-    fontSize: 14,
+    color: colors.primaryDark,
+    fontSize: 12,
     fontWeight: '900',
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   completedBadge: {
-    backgroundColor: '#dcfce7',
-    borderRadius: 999,
-    color: '#166534',
+    backgroundColor: colors.greenSoftBg,
+    borderRadius: radius.pill,
+    color: colors.greenText,
     fontSize: 12,
-    fontWeight: '800',
-    paddingHorizontal: 10,
+    fontWeight: '900',
+    overflow: 'hidden',
+    paddingHorizontal: 11,
     paddingVertical: 6,
   },
   exercise: {
-    color: '#334155',
+    color: colors.body,
     fontSize: 15,
+    fontWeight: '600',
     lineHeight: 22,
   },
   exerciseList: {
@@ -597,27 +607,28 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     alignItems: 'center',
-    borderRadius: 8,
-    minHeight: 38,
-    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    minHeight: 40,
+    paddingHorizontal: 16,
     justifyContent: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#0f766e',
+    backgroundColor: colors.navy,
   },
   filterGroup: {
-    backgroundColor: '#e2e8f0',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
     flexDirection: 'row',
-    padding: 3,
+    padding: 4,
+    ...shadows.soft,
   },
   filterLabel: {
-    color: '#475569',
+    color: colors.textSubtle,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   filterLabelActive: {
-    color: '#ffffff',
+    color: colors.white,
   },
   header: {
     alignItems: 'center',
@@ -629,19 +640,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notes: {
-    color: '#64748b',
+    color: colors.textMuted,
     fontSize: 14,
+    fontWeight: '600',
     lineHeight: 20,
   },
   logRow: {
     gap: 4,
   },
   planned: {
-    color: '#94a3b8',
+    color: colors.textFaint,
     fontWeight: '600',
   },
   title: {
-    color: '#0f172a',
+    color: colors.navy,
     fontSize: 34,
     fontWeight: '900',
   },

@@ -1,7 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, shadows } from '../theme';
-
 type EmptyStateProps = {
   title: string;
   message: string;
@@ -18,24 +16,24 @@ export function EmptyState({ title, message }: EmptyStateProps) {
 
 const styles = StyleSheet.create({
   container: {
-    ...shadows.card,
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: 28,
+    backgroundColor: '#ffffff',
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 24,
   },
   message: {
-    color: colors.textMuted,
+    color: '#64748b',
     fontSize: 15,
-    fontWeight: '600',
     lineHeight: 22,
     marginTop: 8,
     textAlign: 'center',
   },
   title: {
-    color: colors.navy,
-    fontSize: 19,
-    fontWeight: '900',
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '800',
     textAlign: 'center',
   },
 });

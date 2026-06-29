@@ -2,8 +2,6 @@ import { PropsWithChildren } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors } from '../theme';
-
 type ScreenProps = PropsWithChildren<{
   scroll?: boolean;
 }>;
@@ -33,7 +31,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   safeArea: {
-    backgroundColor: colors.appBg,
+    backgroundColor: '#f8fafc',
     flex: 1,
   },
 });
