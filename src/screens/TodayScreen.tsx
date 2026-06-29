@@ -10,35 +10,93 @@ import { EmptyState } from '../components/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { getLocalDateString, getTodayWeekday } from '../lib/date';
 import { notify } from '../lib/notify';
-import { formatSetGroups, getExerciseSetGroups, getFirstSetGroup, getTotalSets } from '../lib/exercisePlan';
+import { formatSetGroups, getExerciseSetGroups, getFirstSetGroup, getTotalSets, normalizeSetGroups } from '../lib/exercisePlan';
 import { confirm } from '../lib/confirm';
-import { completeWorkout, fetchCompletedRoutineIdsForDate, fetchRoutineDetails, markRoutineIncomplete } from '../lib/routines';
-import { RoutineWithDetails, WEEKDAYS } from '../lib/types';
+import { completeWorkout, deleteWorkoutSession, fetchCompletedWorkoutsForDate, fetchRoutineDetails } from '../lib/routines';
+import { RoutineWithDetails, WEEKDAYS, WorkoutExerciseLogInput, WorkoutHistorySession } from '../lib/types';
 import { RootStackParamList } from '../navigation/types';
 
 type Navigation = NativeStackNavigationProp<RootStackParamList>;
 type TodayFilter = 'pending' | 'completed';
+
+function formatCompletedTime(value: string | null) {
+  if (!value) {
+    return 'Completed';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function getWorkoutName(session: WorkoutHistorySession) {
+  return session.routine_name ?? session.title ?? 'Deleted routine';
+}
+
+function uniqueCompletedRoutineIds(sessions: WorkoutHistorySession[]) {
+  return [
+    ...new Set(
+      sessions
+        .map((session) => session.routine_id)
+        .filter((routineId): routineId is string => Boolean(routineId)),
+    ),
+  ];
+}
+
+function buildOptimisticSession(params: {
+  completedAt: string;
+  logs: WorkoutExerciseLogInput[];
+  routine: RoutineWithDetails;
+  scheduledDate: string;
+  sessionId: string;
+  userId: string;
+}): WorkoutHistorySession {
+  return {
+    id: params.sessionId,
+    user_id: params.userId,
+    routine_id: params.routine.id,
+    title: null,
+    scheduled_date: params.scheduledDate,
+    started_at: params.completedAt,
+    completed_at: params.completedAt,
+    status: 'completed',
+    routine_name: params.routine.name,
+    logs: params.logs.map((log, index) => ({
+      id: `${params.sessionId}-${index}`,
+      workout_session_id: params.sessionId,
+      routine_exercise_id: log.routineExerciseId,
+      name: log.name,
+      planned_reps: log.plannedReps,
+      planned_sets: log.plannedSets,
+      planned_set_groups: log.plannedSetGroups,
+      actual_reps: log.actualReps,
+      actual_sets: log.actualSets,
+      actual_set_groups: log.actualSetGroups,
+      notes: log.notes.trim() || null,
+    })),
+  };
+}
 
 export function TodayScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Navigation>();
   const [routines, setRoutines] = useState<RoutineWithDetails[]>([]);
-  const [completedRoutineIds, setCompletedRoutineIds] = useState<string[]>([]);
+  const [completedSessions, setCompletedSessions] = useState<WorkoutHistorySession[]>([]);
   const [filter, setFilter] = useState<TodayFilter>('pending');
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const today = getTodayWeekday();
   const scheduledDate = getLocalDateString();
   const todayLabel = WEEKDAYS.find((weekday) => weekday.value === today)?.label ?? 'Today';
+  const completedRoutineIds = useMemo(() => uniqueCompletedRoutineIds(completedSessions), [completedSessions]);
   const completedRoutineIdSet = useMemo(() => new Set(completedRoutineIds), [completedRoutineIds]);
-  const visibleRoutines = useMemo(
-    () =>
-      routines.filter((routine) =>
-        filter === 'pending' ? !completedRoutineIdSet.has(routine.id) : completedRoutineIdSet.has(routine.id),
-      ),
-    [completedRoutineIdSet, filter, routines],
+  const pendingRoutines = useMemo(
+    () => routines.filter((routine) => !completedRoutineIdSet.has(routine.id)),
+    [completedRoutineIdSet, routines],
   );
   const emptyState =
     filter === 'pending'
@@ -50,8 +108,8 @@ export function TodayScreen() {
               : 'Completed routines are hidden from the main view. Use the filter to review them.',
         }
       : {
-          title: 'No completed routines',
-          message: 'Complete a routine today and it will appear in this filtered view.',
+          title: 'No completed workouts',
+          message: 'Complete or log a workout today and it will appear in this filtered view.',
         };
 
   const load = useCallback(async () => {
@@ -60,12 +118,12 @@ export function TodayScreen() {
     }
 
     try {
-      const [data, completedIds] = await Promise.all([
+      const [data, completedToday] = await Promise.all([
         fetchRoutineDetails(user.id),
-        fetchCompletedRoutineIdsForDate(user.id, scheduledDate),
+        fetchCompletedWorkoutsForDate(user.id, scheduledDate),
       ]);
       setRoutines(data.filter((routine) => routine.schedule.some((item) => item.weekday === today && item.is_active)));
-      setCompletedRoutineIds(completedIds);
+      setCompletedSessions(completedToday);
     } catch (error) {
       notify('Could not load today', error instanceof Error ? error.message : 'Please try again.');
     } finally {
@@ -75,61 +133,67 @@ export function TodayScreen() {
   }, [scheduledDate, today, user]);
 
   const completeRoutine = useCallback(
-    async (routine: RoutineWithDetails): Promise<boolean> => {
+    async (routine: RoutineWithDetails): Promise<WorkoutHistorySession | null> => {
       if (!user) {
-        return false;
+        return null;
       }
 
       try {
-        await completeWorkout({
+        const logs = routine.exercises.map((exercise) => {
+          const setGroups = getExerciseSetGroups(exercise);
+          const firstGroup = getFirstSetGroup(setGroups);
+          const totalSets = getTotalSets(setGroups);
+
+          return {
+            routineExerciseId: exercise.id,
+            name: exercise.name,
+            plannedReps: firstGroup.reps,
+            plannedSets: totalSets,
+            plannedSetGroups: setGroups,
+            actualReps: firstGroup.reps,
+            actualSets: totalSets,
+            actualSetGroups: setGroups,
+            notes: '',
+          };
+        });
+        const session = await completeWorkout({
           userId: user.id,
           routineId: routine.id,
-          scheduledDate: getLocalDateString(),
-          logs: routine.exercises.map((exercise) => {
-            const setGroups = getExerciseSetGroups(exercise);
-            const firstGroup = getFirstSetGroup(setGroups);
-            const totalSets = getTotalSets(setGroups);
-
-            return {
-              routineExerciseId: exercise.id,
-              name: exercise.name,
-              plannedReps: firstGroup.reps,
-              plannedSets: totalSets,
-              plannedSetGroups: setGroups,
-              actualReps: firstGroup.reps,
-              actualSets: totalSets,
-              actualSetGroups: setGroups,
-              notes: '',
-            };
-          }),
+          scheduledDate,
+          logs,
         });
-        return true;
+        const completedAt = session.completed_at ?? new Date().toISOString();
+
+        return buildOptimisticSession({
+          completedAt,
+          logs,
+          routine,
+          scheduledDate,
+          sessionId: session.id,
+          userId: user.id,
+        });
       } catch (error) {
         notify('Could not complete routine', error instanceof Error ? error.message : 'Please try again.');
-        return false;
+        return null;
       }
     },
-    [user],
+    [scheduledDate, user],
   );
 
   // Called once the card's "fly to Completed" animation finishes, so the card
   // leaves the pending list exactly when the animation lands — no pop-up.
-  const handleRoutineCompleted = useCallback((routineId: string) => {
-    setCompletedRoutineIds((current) => (current.includes(routineId) ? current : [...current, routineId]));
+  const handleRoutineCompleted = useCallback((session: WorkoutHistorySession) => {
+    setCompletedSessions((current) => (current.some((item) => item.id === session.id) ? current : [session, ...current]));
   }, []);
 
-  // Removes today's completed session for the routine, sending it back to the
-  // Pending tab. The exercise logs are cleaned up by the database cascade.
-  const markIncomplete = useCallback(
-    async (routine: RoutineWithDetails) => {
-      if (!user) {
-        return;
-      }
+  const deleteCompletedSession = useCallback(
+    async (session: WorkoutHistorySession) => {
+      const workoutName = getWorkoutName(session);
 
       const confirmed = await confirm({
-        title: 'Mark as incomplete?',
-        message: `This removes today's log for "${routine.name}" and moves it back to Pending.`,
-        confirmLabel: 'Mark incomplete',
+        title: session.routine_id ? 'Mark as incomplete?' : 'Delete completed workout?',
+        message: `This removes today's log for "${workoutName}".`,
+        confirmLabel: session.routine_id ? 'Mark incomplete' : 'Delete',
         destructive: true,
       });
 
@@ -138,17 +202,16 @@ export function TodayScreen() {
       }
 
       try {
-        await markRoutineIncomplete({
-          userId: user.id,
-          routineId: routine.id,
-          scheduledDate: getLocalDateString(),
-        });
-        setCompletedRoutineIds((current) => current.filter((id) => id !== routine.id));
+        setDeletingSessionId(session.id);
+        await deleteWorkoutSession(session.id);
+        setCompletedSessions((current) => current.filter((item) => item.id !== session.id));
       } catch (error) {
         notify('Could not update routine', error instanceof Error ? error.message : 'Please try again.');
+      } finally {
+        setDeletingSessionId(null);
       }
     },
-    [user],
+    [],
   );
 
   useFocusEffect(
@@ -198,21 +261,33 @@ export function TodayScreen() {
 
       {loading ? <ActivityIndicator color="#0f766e" size="large" /> : null}
 
-      {!loading && visibleRoutines.length === 0 ? (
+      {!loading && filter === 'pending' && pendingRoutines.length === 0 ? (
         <EmptyState title={emptyState.title} message={emptyState.message} />
       ) : null}
 
-      {visibleRoutines.map((routine) => (
+      {!loading && filter === 'completed' && completedSessions.length === 0 ? (
+        <EmptyState title={emptyState.title} message={emptyState.message} />
+      ) : null}
+
+      {filter === 'pending' ? pendingRoutines.map((routine) => (
         <RoutineCard
           key={routine.id}
           filter={filter}
           onComplete={completeRoutine}
           onCompleted={handleRoutineCompleted}
-          onIncomplete={markIncomplete}
           onModify={() => navigation.navigate('Workout', { routineId: routine.id })}
           routine={routine}
         />
-      ))}
+      )) : null}
+
+      {filter === 'completed' ? completedSessions.map((session) => (
+        <CompletedWorkoutCard
+          deleting={deletingSessionId === session.id}
+          key={session.id}
+          onDelete={deleteCompletedSession}
+          session={session}
+        />
+      )) : null}
       </ScrollView>
 
       <Pressable
@@ -266,12 +341,11 @@ type RoutineCardProps = {
   routine: RoutineWithDetails;
   filter: TodayFilter;
   onModify: (routine: RoutineWithDetails) => void;
-  onComplete: (routine: RoutineWithDetails) => Promise<boolean>;
-  onCompleted: (routineId: string) => void;
-  onIncomplete: (routine: RoutineWithDetails) => void | Promise<void>;
+  onComplete: (routine: RoutineWithDetails) => Promise<WorkoutHistorySession | null>;
+  onCompleted: (session: WorkoutHistorySession) => void;
 };
 
-function RoutineCard({ routine, filter, onModify, onComplete, onCompleted, onIncomplete }: RoutineCardProps) {
+function RoutineCard({ routine, filter, onModify, onComplete, onCompleted }: RoutineCardProps) {
   const [saving, setSaving] = useState(false);
   // 0 = resting in place; the fly-away animation drives these toward the
   // Completed tab (up and to the right), shrinking and fading as it goes.
@@ -284,9 +358,9 @@ function RoutineCard({ routine, filter, onModify, onComplete, onCompleted, onInc
 
   async function handleComplete() {
     setSaving(true);
-    const ok = await onComplete(routine);
+    const completedSession = await onComplete(routine);
 
-    if (!ok) {
+    if (!completedSession) {
       setSaving(false);
       return;
     }
@@ -297,7 +371,7 @@ function RoutineCard({ routine, filter, onModify, onComplete, onCompleted, onInc
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start(({ finished }) => {
       if (finished) {
-        onCompleted(routine.id);
+        onCompleted(completedSession);
       }
     });
   }
@@ -332,16 +406,55 @@ function RoutineCard({ routine, filter, onModify, onComplete, onCompleted, onInc
           />
           <AppButton label="Mark routine as complete" loading={saving} onPress={handleComplete} />
         </View>
-      ) : (
-        <View style={styles.actions}>
-          <AppButton
-            label="Mark routine as incomplete"
-            onPress={() => onIncomplete(routine)}
-            variant="secondary"
-          />
-        </View>
-      )}
+      ) : null}
     </Animated.View>
+  );
+}
+
+function CompletedWorkoutCard({
+  deleting,
+  onDelete,
+  session,
+}: {
+  deleting: boolean;
+  onDelete: (session: WorkoutHistorySession) => void | Promise<void>;
+  session: WorkoutHistorySession;
+}) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.cardTitleWrap}>
+          <Text style={styles.cardTitle}>{getWorkoutName(session)}</Text>
+        </View>
+        <Text style={styles.completedBadge}>{formatCompletedTime(session.completed_at)}</Text>
+      </View>
+
+      <View style={styles.exerciseList}>
+        {session.logs.map((log) => {
+          const actual = formatSetGroups(normalizeSetGroups(log.actual_set_groups, { reps: log.actual_reps, sets: log.actual_sets }));
+          const planned = formatSetGroups(normalizeSetGroups(log.planned_set_groups, { reps: log.planned_reps, sets: log.planned_sets }));
+
+          return (
+            <View key={log.id} style={styles.logRow}>
+              <Text style={styles.exercise}>
+                {log.name} - {actual}
+                {planned !== actual ? <Text style={styles.planned}> (planned {planned})</Text> : null}
+              </Text>
+              {log.notes ? <Text style={styles.notes}>{log.notes}</Text> : null}
+            </View>
+          );
+        })}
+      </View>
+
+      <View style={styles.actions}>
+        <AppButton
+          label={session.routine_id ? 'Mark routine as incomplete' : 'Delete log'}
+          loading={deleting}
+          onPress={() => onDelete(session)}
+          variant={session.routine_id ? 'secondary' : 'danger'}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -519,6 +632,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontSize: 14,
     lineHeight: 20,
+  },
+  logRow: {
+    gap: 4,
+  },
+  planned: {
+    color: '#94a3b8',
+    fontWeight: '600',
   },
   title: {
     color: '#0f172a',

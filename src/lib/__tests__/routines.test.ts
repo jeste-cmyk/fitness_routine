@@ -5,6 +5,7 @@ import {
   completeWorkout,
   deleteRoutine,
   deleteWorkoutSession,
+  fetchCompletedWorkoutsForDate,
   fetchCompletedRoutineIdsForDate,
   fetchRoutineById,
   fetchRoutineDetails,
@@ -271,6 +272,58 @@ describe('fetchCompletedRoutineIdsForDate', () => {
   it('returns an empty array when nothing is completed', async () => {
     __setResponses({ 'workout_sessions.select': { data: [], error: null } });
     expect(await fetchCompletedRoutineIdsForDate('u1', '2026-06-28')).toEqual([]);
+  });
+});
+
+describe('fetchCompletedWorkoutsForDate', () => {
+  it('returns completed sessions for the requested date, including ad-hoc workouts', async () => {
+    __setResponses({
+      'workout_sessions.select': {
+        data: [
+          {
+            id: 's1',
+            user_id: 'u1',
+            routine_id: null,
+            title: 'Volley',
+            scheduled_date: '2026-06-28',
+            completed_at: '2026-06-28T23:37:00.000Z',
+            status: 'completed',
+            routines: null,
+            workout_exercise_logs: [
+              {
+                id: 'l1',
+                workout_session_id: 's1',
+                routine_exercise_id: null,
+                name: 'Volley',
+                planned_reps: 60,
+                planned_sets: 1,
+                planned_set_groups: null,
+                actual_reps: 60,
+                actual_sets: 1,
+                actual_set_groups: null,
+                notes: 'To failure',
+              },
+            ],
+          },
+        ],
+        error: null,
+      },
+    });
+
+    const workouts = await fetchCompletedWorkoutsForDate('u1', '2026-06-28');
+
+    expect(workouts).toHaveLength(1);
+    expect(workouts[0].title).toBe('Volley');
+    expect(workouts[0].routine_name).toBeNull();
+    expect(workouts[0].logs[0].actual_set_groups).toEqual([{ reps: 60, sets: 1 }]);
+
+    const select = callFor('workout_sessions', 'select');
+    const eqArgs = select?.chain.filter((c) => c.method === 'eq').map((c) => c.args);
+    expect(eqArgs).toEqual([
+      ['user_id', 'u1'],
+      ['scheduled_date', '2026-06-28'],
+      ['status', 'completed'],
+    ]);
   });
 });
 

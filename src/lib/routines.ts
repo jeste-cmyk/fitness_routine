@@ -308,6 +308,14 @@ type WorkoutHistoryRow = WorkoutSession & {
   workout_exercise_logs: WorkoutExerciseLog[] | null;
 };
 
+function mapWorkoutHistoryRows(rows: WorkoutHistoryRow[]): WorkoutHistorySession[] {
+  return rows.map((session) => ({
+    ...session,
+    routine_name: session.routines?.name ?? null,
+    logs: (session.workout_exercise_logs ?? []).map(normalizeWorkoutLog),
+  }));
+}
+
 export async function fetchWorkoutHistory(userId: string): Promise<WorkoutHistorySession[]> {
   const { data, error } = await supabase
     .from('workout_sessions')
@@ -328,11 +336,33 @@ export async function fetchWorkoutHistory(userId: string): Promise<WorkoutHistor
     raise(error);
   }
 
-  return ((data ?? []) as WorkoutHistoryRow[]).map((session) => ({
-    ...session,
-    routine_name: session.routines?.name ?? null,
-    logs: (session.workout_exercise_logs ?? []).map(normalizeWorkoutLog),
-  }));
+  return mapWorkoutHistoryRows((data ?? []) as WorkoutHistoryRow[]);
+}
+
+export async function fetchCompletedWorkoutsForDate(
+  userId: string,
+  scheduledDate: string,
+): Promise<WorkoutHistorySession[]> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select(
+      `
+        *,
+        routines(name),
+        workout_exercise_logs(*)
+      `,
+    )
+    .eq('user_id', userId)
+    .eq('scheduled_date', scheduledDate)
+    .eq('status', 'completed')
+    .order('completed_at', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    raise(error);
+  }
+
+  return mapWorkoutHistoryRows((data ?? []) as WorkoutHistoryRow[]);
 }
 
 function buildWorkoutLogRows(sessionId: string, logs: WorkoutExerciseLogInput[]) {

@@ -3,6 +3,7 @@ import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/AppButton';
+import { PositiveIntegerInput } from '../components/PositiveIntegerInput';
 import { Screen } from '../components/Screen';
 import { useAuth } from '../contexts/AuthContext';
 import { getLocalDateString } from '../lib/date';
@@ -16,11 +17,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Workout'>;
 type DraftLog = WorkoutExerciseLogInput & {
   key: string;
 };
-
-function parsePositiveInt(value: string) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
-}
 
 export function WorkoutScreen({ navigation, route }: Props) {
   const { user } = useAuth();
@@ -152,24 +148,18 @@ export function WorkoutScreen({ navigation, route }: Props) {
                 <View style={styles.numberRow}>
                   <View style={styles.numberField}>
                     <Text style={styles.label}>Actual sets</Text>
-                    <TextInput
-                      keyboardType="number-pad"
-                      onChangeText={(value) =>
-                        updateActualSetGroup(index, groupIndex, { ...group, sets: parsePositiveInt(value) })
-                      }
+                    <PositiveIntegerInput
+                      onChangeValue={(value) => updateActualSetGroup(index, groupIndex, { ...group, sets: value })}
                       style={styles.input}
-                      value={String(group.sets)}
+                      value={group.sets}
                     />
                   </View>
                   <View style={styles.numberField}>
                     <Text style={styles.label}>Actual reps</Text>
-                    <TextInput
-                      keyboardType="number-pad"
-                      onChangeText={(value) =>
-                        updateActualSetGroup(index, groupIndex, { ...group, reps: parsePositiveInt(value) })
-                      }
+                    <PositiveIntegerInput
+                      onChangeValue={(value) => updateActualSetGroup(index, groupIndex, { ...group, reps: value })}
                       style={styles.input}
-                      value={String(group.reps)}
+                      value={group.reps}
                     />
                   </View>
                 </View>

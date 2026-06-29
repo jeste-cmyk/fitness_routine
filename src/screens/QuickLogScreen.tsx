@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/AppButton';
+import { PositiveIntegerInput } from '../components/PositiveIntegerInput';
 import { Screen } from '../components/Screen';
 import { useAuth } from '../contexts/AuthContext';
 import { getLocalDateString } from '../lib/date';
@@ -19,11 +20,6 @@ type DraftExercise = {
   sets: number;
   reps: number;
 };
-
-function parsePositiveInt(value: string) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
-}
 
 function toLog(exercise: DraftExercise, notes: string): WorkoutExerciseLogInput {
   return {
@@ -144,20 +140,18 @@ export function QuickLogScreen({ navigation, route }: Props) {
           <View style={styles.numberRow}>
             <View style={styles.numberField}>
               <Text style={styles.label}>Sets</Text>
-              <TextInput
-                keyboardType="number-pad"
-                onChangeText={(value) => updateExercise(index, { ...exercise, sets: parsePositiveInt(value) })}
+              <PositiveIntegerInput
+                onChangeValue={(value) => updateExercise(index, { ...exercise, sets: value })}
                 style={[styles.input, styles.numberInput]}
-                value={String(exercise.sets)}
+                value={exercise.sets}
               />
             </View>
             <View style={styles.numberField}>
               <Text style={styles.label}>{isFailure ? 'Reps reached' : 'Reps'}</Text>
-              <TextInput
-                keyboardType="number-pad"
-                onChangeText={(value) => updateExercise(index, { ...exercise, reps: parsePositiveInt(value) })}
+              <PositiveIntegerInput
+                onChangeValue={(value) => updateExercise(index, { ...exercise, reps: value })}
                 style={[styles.input, styles.numberInput]}
-                value={String(exercise.reps)}
+                value={exercise.reps}
               />
             </View>
           </View>

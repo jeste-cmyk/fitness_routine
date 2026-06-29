@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/AppButton';
+import { PositiveIntegerInput } from '../components/PositiveIntegerInput';
 import { Screen } from '../components/Screen';
 import { confirm, notify } from '../lib/confirm';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,11 +23,6 @@ const blankSetGroup = (): RepSetGroup => ({
   reps: 1,
   sets: 1,
 });
-
-function parsePositiveInt(value: string) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
-}
 
 export function RoutineEditorScreen({ navigation, route }: Props) {
   const routineId = route.params?.routineId;
@@ -292,11 +288,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                       variant="secondary"
                       style={styles.stepperButton}
                     />
-                    <TextInput
-                      keyboardType="number-pad"
-                      onChangeText={(value) => updateSet(index, setIndex, { reps: parsePositiveInt(value) })}
+                    <PositiveIntegerInput
+                      onChangeValue={(value) => updateSet(index, setIndex, { reps: value })}
                       style={[styles.input, styles.stepperValue]}
-                      value={String(set.reps)}
+                      value={set.reps}
                     />
                     <AppButton
                       label="+"
@@ -313,11 +308,10 @@ export function RoutineEditorScreen({ navigation, route }: Props) {
                       variant="secondary"
                       style={styles.stepperButton}
                     />
-                    <TextInput
-                      keyboardType="number-pad"
-                      onChangeText={(value) => updateSet(index, setIndex, { sets: parsePositiveInt(value) })}
+                    <PositiveIntegerInput
+                      onChangeValue={(value) => updateSet(index, setIndex, { sets: value })}
                       style={[styles.input, styles.stepperValue]}
-                      value={String(set.sets)}
+                      value={set.sets}
                     />
                     <AppButton
                       label="+"
